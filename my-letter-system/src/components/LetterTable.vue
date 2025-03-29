@@ -96,139 +96,143 @@
     </div>
 
     <!-- Table Section -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <template v-if="letters.length">
-            <!-- Update the table row in the template -->
-            <tr v-for="letter in paginatedLetters" :key="letter.id">
-              <td class="px-6 py-4 whitespace-nowrap flex space-x-3">
-                <button 
-                  @click="openEditModal(letter)" 
-                  class="p-2 rounded-lg text-blue-600 hover:text-blue-900 hover:bg-blue-100/50 transition-colors group relative"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                  <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    Edit
-                  </span>
-                </button>
-                <button 
-                  @click="confirmDelete(letter.id)" 
-                  class="p-2 rounded-lg text-red-600 hover:text-red-900 hover:bg-red-100/50 transition-colors group relative"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                  <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    Delete
-                  </span>
-                </button>
-                <!-- Replace the dropdown with direct PDF actions -->
-                <div class="flex space-x-2">
+    <div class="bg-white rounded-lg shadow">
+      <div class="overflow-x-auto">
+        <table class="min-w-full table-fixed">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <template v-if="letters.length">
+              <!-- Update the table row in the template -->
+              <tr v-for="letter in paginatedLetters" :key="letter.id">
+                <td class="px-6 py-4 whitespace-nowrap flex space-x-3">
                   <button 
-                    @click="previewLetter(letter)"
-                    class="p-2 rounded-lg text-green-600 hover:text-green-900 hover:bg-green-100/50 transition-colors group relative"
+                    @click="openEditModal(letter)" 
+                    class="p-2 rounded-lg text-blue-600 hover:text-blue-900 hover:bg-blue-100/50 transition-colors group relative"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
                     <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                      Preview PDF
+                      Edit
                     </span>
                   </button>
                   <button 
-                    @click="downloadLetter(letter)"
-                    class="p-2 rounded-lg text-green-600 hover:text-green-900 hover:bg-green-100/50 transition-colors group relative"
+                    @click="confirmDelete(letter.id)" 
+                    class="p-2 rounded-lg text-red-600 hover:text-red-900 hover:bg-red-100/50 transition-colors group relative"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
                     <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                      Download PDF
+                      Delete
                     </span>
                   </button>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ letter.type }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ letter.subject }}</td>
-              <!-- Update the recipients column in the table -->
-              <td class="px-6 py-4">
-                <div class="flex flex-wrap gap-1">
-                  <template v-if="letter.recipients">
-                    <span 
-                      v-for="recipient in (typeof letter.recipients === 'string' ? 
-                        JSON.parse(letter.recipients) : letter.recipients)" 
-                      :key="recipient"
-                      class="px-2 py-1 bg-gray-100 rounded-md text-sm"
+                  <!-- Replace the dropdown with direct PDF actions -->
+                  <div class="flex space-x-2">
+                    <button 
+                      @click="previewLetter(letter)"
+                      class="p-2 rounded-lg text-green-600 hover:text-green-900 hover:bg-green-100/50 transition-colors group relative"
                     >
-                      {{ typeof recipient === 'object' ? recipient.name : recipient }}
-                    </span>
-                  </template>
-                  <span v-else class="text-gray-500">No recipients</span>
-                </div>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                      </svg>
+                      <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        Preview PDF
+                      </span>
+                    </button>
+                    <button 
+                      @click="downloadLetter(letter)"
+                      class="p-2 rounded-lg text-green-600 hover:text-green-900 hover:bg-green-100/50 transition-colors group relative"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                      <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        Download PDF
+                      </span>
+                    </button>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ letter.type }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ letter.subject }}</td>
+                <!-- Update the recipients column in the table -->
+                <td class="px-6 py-4">
+                  <div class="flex flex-wrap gap-1">
+                    <template v-if="letter.recipients">
+                      <span 
+                        v-for="recipient in (typeof letter.recipients === 'string' ? 
+                          JSON.parse(letter.recipients) : letter.recipients)" 
+                        :key="recipient"
+                        class="px-2 py-1 bg-gray-100 rounded-md text-sm"
+                      >
+                        {{ typeof recipient === 'object' ? recipient.name : recipient }}
+                      </span>
+                    </template>
+                    <span v-else class="text-gray-500">No recipients</span>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <tr v-else>
+              <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                No letters found
               </td>
             </tr>
-          </template>
-          <tr v-else>
-            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-              No letters found
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Pagination for Letters -->
-      <div class="bg-white px-4 py-3 flex items-center justify-center border-t border-gray-200">
-        <nav class="flex items-center space-x-1 mt-2">
-          <button 
-            @click="previousPage" 
-            :disabled="currentPage === 1"
-            class="px-2 py-1 border rounded-md text-sm font-medium"
-            :class="currentPage === 1 ? 'text-gray-300 cursor-default' : 'text-gray-700 hover:bg-gray-50'"
-          >
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          <template v-for="page in displayedPages" :key="page">
-            <button
-              @click="goToPage(page)"
-              class="px-3 py-1 border rounded-md text-sm font-medium"
-              :class="page === currentPage ? 'bg-blue-500 text-white border-blue-500' : 'text-gray-700 hover:bg-gray-50'"
-            >
-              {{ page }}
-            </button>
-          </template>
-          <button 
-            @click="nextPage" 
-            :disabled="currentPage === totalPages"
-            class="px-2 py-1 border rounded-md text-sm font-medium"
-            :class="currentPage === totalPages ? 'text-gray-300 cursor-default' : 'text-gray-700 hover:bg-gray-50'"
-          >
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
-          </button>
-        </nav>
+          </tbody>
+        </table>
       </div>
-    </div> <!-- Closing div for bg-white rounded-lg shadow overflow-hidden -->
+    </div>
 
-    <!-- Edit Letter Modal -->
+    <!-- Remove the style tag from here -->
+
+    <!-- Pagination for Letters -->
+    <div class="bg-white px-4 py-3 flex items-center justify-center border-t border-gray-200">
+      <nav class="flex items-center space-x-1 mt-2">
+        <button 
+          @click="previousPage" 
+          :disabled="currentPage === 1"
+          class="px-2 py-1 border rounded-md text-sm font-medium"
+          :class="currentPage === 1 ? 'text-gray-300 cursor-default' : 'text-gray-700 hover:bg-gray-50'"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <template v-for="page in displayedPages" :key="page">
+          <button
+            @click="goToPage(page)"
+            class="px-3 py-1 border rounded-md text-sm font-medium"
+            :class="page === currentPage ? 'bg-blue-500 text-white border-blue-500' : 'text-gray-700 hover:bg-gray-50'"
+          >
+            {{ page }}
+          </button>
+        </template>
+        <button 
+          @click="nextPage" 
+          :disabled="currentPage === totalPages"
+          class="px-2 py-1 border rounded-md text-sm font-medium"
+          :class="currentPage === totalPages ? 'text-gray-300 cursor-default' : 'text-gray-700 hover:bg-gray-50'"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </nav>
+    </div>
+    <!-- </div> Closing div for bg-white rounded-lg shadow overflow-hidden -->
+
     <!-- Edit Letter Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 overflow-hidden">
       <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
@@ -364,7 +368,7 @@
         </div>
       </div>
     </div>
-  </div> <!-- Proper closing div for main container -->
+  </div> <!-- Single closing div for main container -->
 </template>
 
 <script>
@@ -778,6 +782,30 @@ export default {
 </script>
 
 <style scoped>
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E0 #EDF2F7;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #EDF2F7;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: #CBD5E0;
+  border-radius: 4px;
+  border: 2px solid #EDF2F7;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background-color: #A0AEC0;
+}
+
 .mb-6 {
   max-width: 100%;
 }
