@@ -488,19 +488,30 @@ export default {
     async confirmSubmit() {
       try {
         const letterData = {
-          ...this.letterForm,
-          letter_type: this.letterForm.type, // Add this line to map 'type' to 'letter_type'
-          recipients: this.letterForm.recipients.filter(r => r.id)
+          ...(this.editMode ? { id: this.letterForm.id } : {}),
+          title: this.letterForm.title,
+          type: this.letterForm.type,  // Changed from letter_type to type
+          subject: this.letterForm.subject,
+          content: this.letterForm.content,
+          date: this.letterForm.date,
+          recipients: this.letterForm.recipients.filter(r => r.id),
+          sender_name: this.letterForm.sender.name,      // Changed from sender.name
+          sender_position: this.letterForm.sender.position  // Changed from sender.position
         };
 
         if (this.editMode) {
-          await this.$emit('update-letter', letterData);
+          const response = await this.$emit('update-letter', letterData);
+          console.log('Updated letter:', response);
         } else {
-          await this.$emit('save-letter', letterData);
+          const response = await this.$emit('save-letter', letterData);
+          console.log('Saved letter:', response);
         }
 
         this.showConfirmModal = false;
         this.showSuccess = true;
+        
+        // Emit a refresh event to update the table
+        this.$emit('refresh-letters');
         
         setTimeout(() => {
           this.showSuccess = false;
@@ -508,6 +519,7 @@ export default {
         }, 2000);
       } catch (error) {
         console.error('Error saving letter:', error);
+        alert('An error occurred while saving the letter. Please try again.');
       }
     }
   },  // Close methods object with comma

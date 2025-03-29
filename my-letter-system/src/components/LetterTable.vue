@@ -36,6 +36,7 @@
         </div>
 
         <!-- Type Filter and Date Range -->
+        <!-- Remove this misplaced td element -->
         <div class="flex items-center gap-4 flex-nowrap">
           <select v-model="selectedType" class="border rounded-md px-4 py-2 w-32 mr-2">
             <option value="">All Types</option>
@@ -44,13 +45,15 @@
           </select>
           <div class="flex gap-2">
             <input
-              v-model="dateRange.start"
               type="date"
+              :value="formatDateForInput(dateRange.start)"
+              @input="e => setDateRange(e.target.value, dateRange.end)"
               class="border rounded-md px-3 py-2 w-40 min-w-[160px]"
             />
             <input
-              v-model="dateRange.end"
               type="date"
+              :value="formatDateForInput(dateRange.end)"
+              @input="e => setDateRange(dateRange.start, e.target.value)"
               class="border rounded-md px-3 py-2 w-40 min-w-[160px]"
             />
           </div>
@@ -107,6 +110,7 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <template v-if="letters.length">
+            <!-- Update the table row in the template -->
             <tr v-for="letter in paginatedLetters" :key="letter.id">
               <td class="px-6 py-4 whitespace-nowrap flex space-x-3">
                 <button 
@@ -147,17 +151,21 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
               <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ letter.letter_type }}</td>
-              <td class="px-6 py-4">{{ letter.subject }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap">{{ letter.type }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ letter.subject }}</td>
+              <!-- Update the recipients column in the table -->
+              <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                  <span 
-                    v-for="recipient in letter.recipients" 
-                    :key="recipient.id"
-                    class="px-2 py-1 bg-gray-100 rounded-md text-sm"
-                  >
-                    {{ recipient.name }}
-                  </span>
+                  <template v-if="letter.recipients">
+                    <span 
+                      v-for="(recipient, index) in JSON.parse(letter.recipients)" 
+                      :key="index"
+                      class="px-2 py-1 bg-gray-100 rounded-md text-sm"
+                    >
+                      {{ recipient.name }}
+                    </span>
+                  </template>
+                  <span v-else class="text-gray-500">No recipients</span>
                 </div>
               </td>
             </tr>
@@ -207,6 +215,7 @@
     </div> <!-- Closing div for bg-white rounded-lg shadow overflow-hidden -->
 
     <!-- Edit Letter Modal -->
+    <!-- Edit Letter Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
       <div class="flex items-center justify-center min-h-screen p-4 backdrop-blur-sm">
@@ -215,14 +224,14 @@
           <div class="absolute top-0 right-0 bg-white px-6 py-3 border-b z-10 flex justify-end gap-3">
             <button
               type="button"
-              @click="updateLetter(currentLetter)"
+              @click="handleLetterSaved(currentLetter)"
               class="px-4 py-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
             >
               Update
             </button>
             <button
               type="button"
-              @click="showEditModal = false"
+              @click="closeEditModal"
               class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
             >
               Cancel
@@ -233,9 +242,10 @@
           <div class="h-full overflow-y-auto pt-16 px-6 pb-6">
             <letter-form 
               :editMode="true" 
-              :letterData="currentLetter" 
-              @update-letter="updateLetter"
-              @close="showEditModal = false"
+              :letterData="currentLetter"
+              :recipients="recipients"
+              @save-letter="handleLetterSaved"
+              @close="closeEditModal"
             />
           </div>
         </div>
@@ -311,7 +321,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import LetterForm from './LetterForm.vue';
 
-// Update the apiClient configuration
+// Keep the apiClient configuration
 const apiClient = axios.create({
   baseURL: 'http://192.168.8.40:8000/api',  // Changed baseURL to point to main API endpoint
   timeout: 60000,
@@ -344,6 +354,7 @@ export default {
   components: {
     LetterForm
   },
+  emits: ['refresh-letters'], // Add this line to declare the emit
   data() {
     return {
       letters: [],
@@ -375,10 +386,23 @@ export default {
     totalPages() {
       return Math.max(1, Math.ceil(this.filteredLetters.length / this.perPage));
     },
-    paginatedLetters() {
-      const start = (this.currentPage - 1) * this.perPage;
-      const end = start + this.perPage;
-      return this.filteredLetters.slice(start, end);
+    filteredLetters() {
+      return this.letters.filter(letter => {
+        const matchesTitle = letter.title?.toLowerCase().includes(this.searchQuery.toLowerCase()) ?? false;
+        const matchesSubject = letter.subject?.toLowerCase().includes(this.searchSubject.toLowerCase()) ?? false;
+        const matchesType = this.selectedType ? letter.type?.toLowerCase() === this.selectedType.toLowerCase() : true;
+        const matchesRecipient = this.searchRecipient ? 
+          (Array.isArray(letter.recipient) ? 
+            letter.recipient.some(r => r.toLowerCase().includes(this.searchRecipient.toLowerCase())) :
+            String(letter.recipient).toLowerCase().includes(this.searchRecipient.toLowerCase())
+          ) : true;
+        
+        const letterDate = new Date(letter.date);  // Changed from date_created to date
+        const matchesDateRange = (!this.dateRange.start || letterDate >= new Date(this.dateRange.start)) &&
+                               (!this.dateRange.end || letterDate <= new Date(this.dateRange.end));
+        
+        return matchesTitle && matchesSubject && matchesType && matchesRecipient && matchesDateRange;
+      });
     },
     displayedPages() {
       const pages = [];
@@ -395,20 +419,10 @@ export default {
       }
       return pages;
     },
-    filteredLetters() {
-      return this.letters.filter(letter => {
-        const matchesName = letter.name?.toLowerCase().includes(this.searchQuery.toLowerCase()) ?? false;
-        const matchesSubject = letter.subject?.toLowerCase().includes(this.searchSubject.toLowerCase()) ?? false;
-        const matchesType = this.selectedType ? letter.letter_type.toLowerCase() === this.selectedType.toLowerCase() : true;
-        const matchesSender = this.searchRecipient ? 
-          letter.sender_name?.toLowerCase().includes(this.searchRecipient.toLowerCase()) ?? false : true;
-        
-        const letterDate = new Date(letter.date_created);
-        const matchesDateRange = (!this.dateRange.start || letterDate >= new Date(this.dateRange.start)) &&
-                               (!this.dateRange.end || letterDate <= new Date(this.dateRange.end));
-        
-        return matchesName && matchesSubject && matchesType && matchesSender && matchesDateRange;
-      });
+    paginatedLetters() {
+      const start = (this.currentPage - 1) * this.perPage;
+      const end = start + this.perPage;
+      return this.filteredLetters.slice(start, end);
     },
   },
   async mounted() {
@@ -425,125 +439,123 @@ export default {
       const date = new Date(dateString);
       return date.toLocaleDateString();
     },
-    openEditModal(letter) {
-      this.currentLetter = { ...letter };
-      this.showEditModal = true;
-    },
-    confirmDelete(letterId) {
-      this.confirmDeleteId = letterId;
-      this.showDeleteConfirmModal = true;
-    },
-    async checkNetwork() {
-      try {
-        await axios.get('http://192.168.8.40:8000/api/letters');
-        this.networkStatus = true;
-        return true;
-      } catch (error) {
-        console.error('Network connection error:', error);
-        this.networkStatus = false;
-        return false;
-      }
-    },
-
-    async fetchLetters() {
-      try {
-        console.log('Attempting to fetch letters...');
-        const response = await apiClient.get('/letters');
-        console.log('Letters response:', response);
-        
-        // Check for the success and data structure
-        if (response.data.success && Array.isArray(response.data.data)) {
-          this.letters = response.data.data;
-        } else {
-          console.error('Unexpected data structure:', response.data);
-          this.letters = [];
-        }
-
-        console.log('Processed letters:', this.letters);
-      } catch (error) {
-        console.error('Letters fetch error:', {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data
-        });
-        this.letters = [];
-      }
-    },
-
-    async fetchRecipients() {
-      try {
-        console.log('Fetching recipients...');
-        const response = await apiClient.get('/recipients', {
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        console.log('Recipients response:', response);
-        if (response?.data) {  // Changed from response?.data?.data
-          this.recipients = response.data;
-        }
-      } catch (error) {
-        console.error('Error fetching recipients:', error);
-        this.recipients = [];
-      }
-    },
-
-    formatRecipients(recipients) {
-      return recipients.map(recipient => {
-        if (typeof recipient === 'object') {
-          return {
-            name: recipient.name.replace(/[\[\]']+/g, ''),
-            position: recipient.position
-          };
-        }
-        return this.recipients.find(r => r.id === recipient)?.name || recipient;
-      });
-    },
-
-    formatDate(dateString) {
+    formatDateForInput(dateString) {
       if (!dateString) return '';
-      const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString(undefined, options);
+      const date = new Date(dateString);
+      // Format the date to yyyy-MM-dd
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     },
-
-    previewLetter(letter) {
-      console.log('Preview letter:', letter);
+    closeEditModal() {
+      this.showEditModal = false;
+      this.currentLetter = null;
     },
-
-    // Move these methods inside the methods object
+    closeLetterForm() {
+      this.showLetterForm = false;
+      this.selectedLetter = null;
+    },
+    async openEditModal(letter) {
+      try {
+        const letterData = { ...letter };
+        if (typeof letterData.recipients === 'string') {
+          letterData.recipients = JSON.parse(letterData.recipients);
+        }
+        this.currentLetter = letterData;
+        this.showEditModal = true;
+      } catch (error) {
+        console.error('Error preparing letter data for edit:', error);
+      }
+    },
+    async handleLetterSaved(letterData) {
+      try {
+        if (letterData.id) {
+          const updatedData = {
+            ...letterData,
+            recipients: Array.isArray(letterData.recipients) ? 
+              JSON.stringify(letterData.recipients) : 
+              letterData.recipients
+          };
+          await this.updateLetter(updatedData);
+          this.$emit('refresh-letters');
+        } else {
+          await this.addLetter(letterData);
+          this.$emit('refresh-letters');
+        }
+        this.closeEditModal();
+        await this.fetchLetters();
+      } catch (error) {
+        console.error('Error saving letter:', error);
+      }
+    },
     async addLetter(letterData) {
       try {
         const response = await apiClient.post('/letters', letterData);
         if (response.data.success) {
           await this.fetchLetters();
           this.showLetterForm = false;
+          this.currentPage = 1;
         }
       } catch (error) {
         console.error('Error adding letter:', error);
       }
     },
-
+    async fetchLetters() {
+      try {
+        console.log('Fetching letters...');
+        const response = await apiClient.get('/letters');
+        
+        if (response.data.success && Array.isArray(response.data.data)) {
+          this.letters = response.data.data;
+          const maxPage = Math.ceil(this.letters.length / this.perPage);
+          if (this.currentPage > maxPage) {
+            this.currentPage = maxPage || 1;
+          }
+        } else {
+          console.error('Unexpected data structure:', response.data);
+          this.letters = [];
+        }
+      } catch (error) {
+        console.error('Letters fetch error:', error);
+        this.letters = [];
+      }
+    },
+    async fetchRecipients() {
+      try {
+        const response = await apiClient.get('/recipients');
+        if (response.data.success) {
+          this.recipients = response.data.data;
+        }
+      } catch (error) {
+        console.error('Error fetching recipients:', error);
+        this.recipients = [];
+      }
+    },
     async updateLetter(letterData) {
       try {
         const response = await apiClient.put(`/letters/${letterData.id}`, letterData);
         if (response.data.success) {
           await this.fetchLetters();
           this.showEditModal = false;
-          this.currentLetter = null;
         }
       } catch (error) {
         console.error('Error updating letter:', error);
       }
     },
 
-    async deleteLetter(letterId) {
+    confirmDelete(id) {
+      this.confirmDeleteId = id;
+      this.showDeleteConfirmModal = true;
+    },
+
+    async deleteLetter(id) {
       try {
-        const response = await apiClient.delete(`/letters/${letterId}`);
+        const response = await apiClient.delete(`/letters/${id}`);
         if (response.data.success) {
-          await this.fetchLetters();
           this.showDeleteConfirmModal = false;
           this.showDeleteSuccess = true;
+          await this.fetchLetters();
           setTimeout(() => {
             this.showDeleteSuccess = false;
           }, 2000);
@@ -551,20 +563,9 @@ export default {
       } catch (error) {
         console.error('Error deleting letter:', error);
       }
-    },  // Added comma here
-
-    closeLetterForm() {
-      this.showLetterForm = false;
-      this.selectedLetter = {
-        title: '',
-        subject: '',
-        letter_type: '',
-        recipients: [],
-        date: new Date().toISOString().split('T')[0]
-      };
     },
 
-    // Add these pagination methods
+    // Add pagination methods
     previousPage() {
       if (this.currentPage > 1) {
         this.currentPage--;
@@ -578,27 +579,9 @@ export default {
     },
 
     goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-      }
-    },
-
-    async handleLetterSaved(letterData) {
-      try {
-        if (letterData.id) {
-          // If letter has ID, it's an update
-          await this.updateLetter(letterData);
-        } else {
-          // If no ID, it's a new letter
-          await this.addLetter(letterData);
-        }
-        this.closeLetterForm();
-        await this.fetchLetters();
-      } catch (error) {
-        console.error('Error saving letter:', error);
-      }
+      this.currentPage = page;
     }
-  }  // Proper closing brace for methods object
+  }
 };
 </script>
 
