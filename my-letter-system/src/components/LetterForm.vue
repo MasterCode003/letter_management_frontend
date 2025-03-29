@@ -58,6 +58,7 @@
                 <label class="font-medium w-24 text-lg">Type:</label>
                 <div class="flex flex-col">
                   <div class="relative">
+                    <!-- Update the letter type select options -->
                     <select
                       v-model="letterForm.type"
                       :class="{'border-red-500': errors.type}"
@@ -65,8 +66,8 @@
                       class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                     >
                       <option value="">Select Type</option>
-                      <option value="Memo">Memo</option>
-                      <option value="Business Letter">Business Letter</option>
+                      <option value="memo">Memo</option>
+                      <option value="business_letter">Business Letter</option>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -462,15 +463,47 @@ export default {
       };
     },
 
-    confirmSubmit() {
-      if (this.editMode) {
-        this.$emit('update-letter', this.letterForm);
-      } else {
-        this.$emit('save-letter', this.letterForm);
-      }
-      this.showConfirmModal = false;
-    },
+    async confirmSubmit() {
+      try {
+        const formData = {
+          letter_type: this.letterForm.type.toLowerCase(),  // Convert to lowercase
+          title: this.letterForm.title,
+          subject: this.letterForm.subject,
+          content: this.letterForm.content,
+          date: this.letterForm.date,
+          sender_name: this.letterForm.sender.name,
+          sender_position: this.letterForm.sender.position,
+          recipients: this.letterForm.recipients.map(r => r.id)
+        };
 
+        const response = await apiClient.post('/letters', formData);
+        this.$emit(this.editMode ? 'update-letter' : 'save-letter', response.data);
+        this.showConfirmModal = false;
+        this.showSuccess = true;
+        setTimeout(() => {
+          this.showSuccess = false;
+          this.$emit('close');
+        }, 1500);
+      } catch (error) {
+        this.showConfirmModal = false;
+        if (error.response && error.response.status === 422) {
+          const serverErrors = error.response.data.errors;
+          this.errors = {
+            type: serverErrors.letter_type ? serverErrors.letter_type[0] : '',
+            title: serverErrors.title ? serverErrors.title[0] : '',
+            subject: serverErrors.subject ? serverErrors.subject[0] : '',
+            content: serverErrors.content ? serverErrors.content[0] : '',
+            date: serverErrors.date ? serverErrors.date[0] : '',
+            senderName: serverErrors.sender_name ? serverErrors.sender_name[0] : '',
+            senderPosition: serverErrors.sender_position ? serverErrors.sender_position[0] : '',
+            recipients: serverErrors.recipients ? serverErrors.recipients[0] : ''
+          };
+        } else {
+          console.error('Save failed:', error);
+          alert('Failed to save letter. Please try again.');
+        }
+      }
+    },
     handleSubmit() {
       this.clearErrors();
       let isValid = true;
