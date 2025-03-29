@@ -293,32 +293,21 @@ const apiClient = axios.create({
 });
 
 export default {
-  // Fix the recipients prop definition
+  name: 'LetterForm',
   props: {
+    letterData: {
+      type: Object,
+      default: () => ({})
+    },
     editMode: {
       type: Boolean,
       default: false
-    },
-    letterData: {
-      type: Object,
-      default: () => ({
-        id: '',
-        title: '',
-        type: '',
-        subject: '',
-        content: '',
-        recipients: [{ id: '', name: '', position: '' }],
-        date: new Date().toISOString().split('T')[0],
-        sender: {
-          name: '',
-          position: ''
-        }
-      })
-    },
-    recipients: {
-      type: Array,
-      default: () => []
     }
+  },
+  emits: ['save-letter', 'close', 'refresh-letters'],
+  recipients: {
+    type: Array,
+    default: () => []
   },
   
   // Add showConfirmModal to data

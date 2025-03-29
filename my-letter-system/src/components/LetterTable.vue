@@ -216,7 +216,7 @@
 
     <!-- Edit Letter Modal -->
     <!-- Edit Letter Modal -->
-    <div v-if="showEditModal" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div v-if="showEditModal" class="fixed inset-0 z-50 overflow-hidden">
       <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
       <div class="flex items-center justify-center min-h-screen p-4 backdrop-blur-sm">
         <div class="relative bg-white rounded-lg shadow-xl w-[85%] h-[85vh] max-w-[1200px]">
@@ -239,15 +239,24 @@
           </div>
 
           <!-- Modal content -->
+          <!-- Edit Letter Modal -->
           <div class="h-full overflow-y-auto pt-16 px-6 pb-6">
             <letter-form 
-              :editMode="true" 
-              :letterData="currentLetter"
-              :recipients="recipients"
+              :letter-data="currentLetter"
+              :edit-mode="true"
               @save-letter="handleLetterSaved"
               @close="closeEditModal"
             />
           </div>
+          
+          <!-- And update the other LetterForm instance -->
+          <LetterForm
+            v-if="showLetterForm"
+            :letter-data="selectedLetter || {}"
+            :edit-mode="false"
+            @close="closeLetterForm"
+            @save-letter="handleLetterSaved"
+          />
         </div>
       </div>
     </div>
@@ -436,17 +445,30 @@ export default {
   },
   methods: {
     formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      } catch (error) {
+        console.error('Date formatting error:', error);
+        return dateString;
+      }
     },
     formatDateForInput(dateString) {
       if (!dateString) return '';
-      const date = new Date(dateString);
-      // Format the date to yyyy-MM-dd
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        return date.toISOString().split('T')[0];
+      } catch (error) {
+        console.error('Date formatting error:', error);
+        return '';
+      }
     },
     closeEditModal() {
       this.showEditModal = false;
@@ -470,20 +492,27 @@ export default {
     },
     async handleLetterSaved(letterData) {
       try {
-        if (letterData.id) {
-          const updatedData = {
-            ...letterData,
-            recipients: Array.isArray(letterData.recipients) ? 
-              JSON.stringify(letterData.recipients) : 
-              letterData.recipients
-          };
-          await this.updateLetter(updatedData);
-          this.$emit('refresh-letters');
-        } else {
-          await this.addLetter(letterData);
-          this.$emit('refresh-letters');
+        if (!letterData) {
+          console.error('Letter data is undefined');
+          return;
         }
-        this.closeEditModal();
+
+        const processedData = {
+          ...letterData,
+          recipients: Array.isArray(letterData.recipients) ? 
+            JSON.stringify(letterData.recipients) : 
+            letterData.recipients,
+          date: this.formatDateForInput(letterData.date)
+        };
+
+        if (letterData.id) {
+          await this.updateLetter(processedData);
+        } else {
+          await this.addLetter(processedData);
+        }
+        
+        this.showLetterForm = false;
+        this.showEditModal = false;
         await this.fetchLetters();
       } catch (error) {
         console.error('Error saving letter:', error);
@@ -580,7 +609,13 @@ export default {
 
     goToPage(page) {
       this.currentPage = page;
-    }
+    },  // Add comma here
+    
+    previewLetter(letter) {
+      // You can implement the preview functionality here
+      console.log('Preview letter:', letter);
+      // For example, you could open a new modal or navigate to a preview page
+    },
   }
 };
 </script>
