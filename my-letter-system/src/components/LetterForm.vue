@@ -66,8 +66,8 @@
                       class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                     >
                       <option value="">Select Type</option>
-                      <option value="memo">Memo</option>
-                      <option value="business_letter">Business Letter</option>
+                      <option value="Memo">Memo</option>
+                      <option value="Business Letter">Business Letter</option>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,6 +293,7 @@ const apiClient = axios.create({
 });
 
 export default {
+  // Fix the recipients prop definition
   props: {
     editMode: {
       type: Boolean,
@@ -319,7 +320,8 @@ export default {
       default: () => []
     }
   },
-
+  
+  // Add showConfirmModal to data
   data() {
     return {
       formData: {
@@ -330,14 +332,15 @@ export default {
         recipients: [],
         content: ''
       },
-      localRecipients: [], // Add this for storing fetched recipients
+      showConfirmModal: false, // Add this line
+      localRecipients: [],
       letterForm: {
         id: this.editMode && this.letterData ? this.letterData.id : Date.now().toString(),
         title: this.editMode && this.letterData ? this.letterData.title : '',
         type: this.editMode && this.letterData ? this.letterData.type : '',
         subject: this.editMode && this.letterData ? this.letterData.subject : '',
         content: this.editMode && this.letterData ? this.letterData.content : '',
-        recipients: this.editMode && this.letterData ? 
+        recipients: this.editMode && this.letterData && this.letterData.recipients ? 
           this.letterData.recipients : 
           [{ id: '', name: '', position: '' }],
         date: this.editMode && this.letterData ? this.letterData.date : new Date().toISOString().split('T')[0],
@@ -381,171 +384,133 @@ export default {
 
   methods: {
     addRecipient() {
-      this.letterForm.recipients.push({ id: '', name: '', position: '' });
+      this.letterForm.recipients.push({ 
+        id: '', 
+        name: '', 
+        position: '' 
+      });
     },
 
     removeRecipient(index) {
-      this.letterForm.recipients.splice(index, 1);
+      if (this.letterForm.recipients.length > 1) {
+        this.letterForm.recipients.splice(index, 1);
+      }
     },
 
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        console.log('Recipients API response:', response.data);
-        
         if (Array.isArray(response.data)) {
           this.recipientsList = response.data;
         } else if (response.data.data && Array.isArray(response.data.data)) {
           this.recipientsList = response.data.data;
         }
-        
-        console.log('Updated recipientsList:', this.recipientsList);
       } catch (error) {
         console.error('Error fetching recipients:', error);
+        this.recipientsList = [];
       }
     },
 
     updateRecipient(index, recipientId) {
       const selectedRecipient = this.recipientsList.find(r => r.id === recipientId);
       if (selectedRecipient) {
-        this.$set(this.letterForm.recipients, index, {
+        const newRecipient = {
           id: selectedRecipient.id,
           name: selectedRecipient.name,
           position: selectedRecipient.position
-        });
-        console.log('Updated recipient:', this.letterForm.recipients[index]);
-      }
-    },
-
-    async mounted() {
-        try {
-          const response = await apiClient.get('/recipients');
-          console.log('Recipients response:', response);
-          // Handle the direct response data since there's no nested data property
-          if (Array.isArray(response.data)) {
-            this.recipientsList = response.data;
-          }
-          console.log('Processed recipients:', this.recipientsList);
-        } catch (error) {
-          console.error('Error fetching recipients:', error);
-        }
-      },
-
-    async handleUpdateSubmit() {
-      try {
-        const response = await apiClient.put(`/recipients/${this.recipientForm.id}`, this.recipientForm);
-        if (response.data) {
-          const index = this.recipients.findIndex(r => r.id === response.data.id);
-          if (index !== -1) {
-            this.recipients.splice(index, 1, response.data);
-          }
-        }
-        this.showUpdateFormModal = false;
-      } catch (error) {
-        console.error('Update Error:', error);
-      }
-    },
-
-    handleUploadImage(event, insertImage, files) {
-      alert('Image upload is not supported in this version');
-    },
-
-    clearErrors() {
-      this.errors = {
-        title: '',
-        type: '',
-        subject: '',
-        content: '',
-        date: '',
-        recipients: '',
-        senderName: '',
-        senderPosition: ''
-      };
-    },
-
-    async confirmSubmit() {
-      try {
-        const formData = {
-          letter_type: this.letterForm.type.toLowerCase(),  // Convert to lowercase
-          title: this.letterForm.title,
-          subject: this.letterForm.subject,
-          content: this.letterForm.content,
-          date: this.letterForm.date,
-          sender_name: this.letterForm.sender.name,
-          sender_position: this.letterForm.sender.position,
-          recipients: this.letterForm.recipients.map(r => r.id)
         };
+        
+        const isDuplicate = this.letterForm.recipients.some((r, i) => 
+          i !== index && r.id === recipientId
+        );
 
-        const response = await apiClient.post('/letters', formData);
-        this.$emit(this.editMode ? 'update-letter' : 'save-letter', response.data);
-        this.showConfirmModal = false;
-        this.showSuccess = true;
-        setTimeout(() => {
-          this.showSuccess = false;
-          this.$emit('close');
-        }, 1500);
-      } catch (error) {
-        this.showConfirmModal = false;
-        if (error.response && error.response.status === 422) {
-          const serverErrors = error.response.data.errors;
-          this.errors = {
-            type: serverErrors.letter_type ? serverErrors.letter_type[0] : '',
-            title: serverErrors.title ? serverErrors.title[0] : '',
-            subject: serverErrors.subject ? serverErrors.subject[0] : '',
-            content: serverErrors.content ? serverErrors.content[0] : '',
-            date: serverErrors.date ? serverErrors.date[0] : '',
-            senderName: serverErrors.sender_name ? serverErrors.sender_name[0] : '',
-            senderPosition: serverErrors.sender_position ? serverErrors.sender_position[0] : '',
-            recipients: serverErrors.recipients ? serverErrors.recipients[0] : ''
-          };
+        if (!isDuplicate) {
+          this.letterForm.recipients.splice(index, 1, newRecipient);
         } else {
-          console.error('Save failed:', error);
-          alert('Failed to save letter. Please try again.');
+          this.letterForm.recipients[index] = { id: '', name: '', position: '' };
+          alert('This recipient has already been selected');
         }
       }
-    },
+    },  // Add comma here
+
     handleSubmit() {
-      this.clearErrors();
+      // Reset previous errors
+      Object.keys(this.errors).forEach(key => this.errors[key] = '');
+      
+      // Validate form
       let isValid = true;
       
       if (!this.letterForm.title.trim()) {
         this.errors.title = 'Title is required';
         isValid = false;
       }
+      
       if (!this.letterForm.type) {
         this.errors.type = 'Type is required';
         isValid = false;
       }
+      
       if (!this.letterForm.subject.trim()) {
         this.errors.subject = 'Subject is required';
         isValid = false;
       }
+      
       if (!this.letterForm.content.trim()) {
         this.errors.content = 'Content is required';
         isValid = false;
       }
+      
       if (!this.letterForm.date) {
         this.errors.date = 'Date is required';
         isValid = false;
       }
-      if (!this.letterForm.sender.name.trim()) {
-        this.errors.senderName = 'Sender name is required';
-        isValid = false;
-      }
-      if (!this.letterForm.sender.position.trim()) {
-        this.errors.senderPosition = 'Sender position is required';
-        isValid = false;
-      }
+      
       if (!this.letterForm.recipients[0].id) {
         this.errors.recipients = 'At least one recipient is required';
         isValid = false;
       }
-    
+
+      if (!this.letterForm.sender.name.trim()) {
+        this.errors.senderName = 'Sender name is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.sender.position.trim()) {
+        this.errors.senderPosition = 'Sender position is required';
+        isValid = false;
+      }
+
       if (isValid) {
         this.showConfirmModal = true;
       }
+    },  // Add comma here
+
+    async confirmSubmit() {
+      try {
+        const letterData = {
+          ...this.letterForm,
+          letter_type: this.letterForm.type, // Add this line to map 'type' to 'letter_type'
+          recipients: this.letterForm.recipients.filter(r => r.id)
+        };
+
+        if (this.editMode) {
+          await this.$emit('update-letter', letterData);
+        } else {
+          await this.$emit('save-letter', letterData);
+        }
+
+        this.showConfirmModal = false;
+        this.showSuccess = true;
+        
+        setTimeout(() => {
+          this.showSuccess = false;
+          this.$emit('close');
+        }, 2000);
+      } catch (error) {
+        console.error('Error saving letter:', error);
+      }
     }
-  }, // Remove extra closing brace and comma here
+  },  // Close methods object with comma
 
   mounted() {
     this.fetchRecipients();

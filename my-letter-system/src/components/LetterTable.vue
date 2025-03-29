@@ -283,15 +283,14 @@
     </div>
 
     <!-- Letter Form Modal -->
-    <letter-form 
-      v-if="showLetterForm" 
-      @close="showLetterForm = false" 
-      @save-letter="addLetter" 
-      @update-letter="updateLetter"
-      :letterData="currentLetter"
-      :editMode="!!currentLetter"
-      :recipients="recipients"
-    /> <!-- Fixed comment syntax -->
+    <!-- Update the LetterForm component usage -->
+    <LetterForm
+      v-if="showLetterForm"
+      :letter-data="selectedLetter || {}"
+      :edit-mode="false"
+      @close="closeLetterForm"
+      @save-letter="handleLetterSaved"
+    />
 
     <!-- Delete Success Message -->
     <div v-if="showDeleteSuccess" class="fixed inset-0 flex items-center justify-center">
@@ -355,6 +354,7 @@ export default {
       showDeleteSuccess: false,
       confirmDeleteId: null,
       currentLetter: null,
+      selectedLetter: null,  // Add this line
       currentPage: 1,
       perPage: 10,
       searchQuery: '',
@@ -551,8 +551,54 @@ export default {
       } catch (error) {
         console.error('Error deleting letter:', error);
       }
+    },  // Added comma here
+
+    closeLetterForm() {
+      this.showLetterForm = false;
+      this.selectedLetter = {
+        title: '',
+        subject: '',
+        letter_type: '',
+        recipients: [],
+        date: new Date().toISOString().split('T')[0]
+      };
+    },
+
+    // Add these pagination methods
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+      }
+    },
+
+    goToPage(page) {
+      if (page >= 1 && page <= this.totalPages) {
+        this.currentPage = page;
+      }
+    },
+
+    async handleLetterSaved(letterData) {
+      try {
+        if (letterData.id) {
+          // If letter has ID, it's an update
+          await this.updateLetter(letterData);
+        } else {
+          // If no ID, it's a new letter
+          await this.addLetter(letterData);
+        }
+        this.closeLetterForm();
+        await this.fetchLetters();
+      } catch (error) {
+        console.error('Error saving letter:', error);
+      }
     }
-  }
+  }  // Proper closing brace for methods object
 };
 </script>
 
