@@ -4,12 +4,12 @@ import vue2 from '@vitejs/plugin-vue2'
 export default defineConfig({
   plugins: [vue2()],
   server: {
-    host: true, // Change this line
+    host: '192.168.5.15',
     port: 5173,
-    open: true, // Add this line
+    open: true,
     proxy: {
       '/api': {
-        target: 'http://192.168.5.95:8000',
+        target: 'http://192.168.5.15:8000',
         changeOrigin: true,
         secure: false,
         timeout: 30000,

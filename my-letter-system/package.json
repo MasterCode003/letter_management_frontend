@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host --debug",
+    "dev": "vite --host 192.168.5.95",
     "build": "vite build",
     "preview": "vite preview"
-  },
+  }
   "dependencies": {
     "mavon-editor": "^2.10.4",
     "@pdftron/webviewer": "^11.3.0",
