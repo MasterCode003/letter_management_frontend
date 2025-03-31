@@ -308,7 +308,7 @@
 import axios from 'axios';
 // Update the apiClient configuration at the top of the script
 const apiClient = axios.create({
-  baseURL: 'http://192.168.8.40:8000/api',
+  baseURL: 'http://192.168.5.95:8000/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',

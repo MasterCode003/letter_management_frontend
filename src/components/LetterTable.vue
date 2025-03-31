@@ -379,7 +379,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // Keep the apiClient configuration
 const apiClient = axios.create({
-  baseURL: 'http://192.168.8.40:8000/api',  // Changed baseURL to point to main API endpoint
+  baseURL: 'http://192.168.5.95:8000/api',  // Changed baseURL to point to main API endpoint
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',

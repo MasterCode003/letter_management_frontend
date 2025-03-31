@@ -163,6 +163,16 @@
                     v-model="letterForm.content"
                     :class="{'border-red-500': errors.content}"
                     height="400px"
+                    language="en-US"
+                    :toolbars="[
+                      'bold', 'underline', 'italic', 'strikethrough',
+                      '-',
+                      'title', 'quote', 'unorderedList', 'orderedList',
+                      '-',
+                      'link', 'image', 'table',
+                      '-',
+                      'preview', 'fullscreen'
+                    ]"
                   />
                 </div>
                 <span v-if="errors.content" class="text-sm text-red-500">{{ errors.content }}</span>
@@ -265,7 +275,7 @@ import 'md-editor-v3/lib/style.css';
 
 // Update the apiClient configuration
 const apiClient = axios.create({
-  baseURL: 'http://192.168.8.40:8000/api',
+  baseURL: 'http://192.168.5.95:8000/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
