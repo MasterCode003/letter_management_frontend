@@ -159,31 +159,37 @@
               <div class="space-y-2">
                 <label class="font-medium block text-lg">Content:</label>
                 <div class="relative h-[400px] border rounded-md">
-                  <v-md-editor 
-                    v-model="letterForm.content" 
-                    height="400px"
+                  <mavon-editor 
+                    v-model="letterForm.content"
                     :class="{'border-red-500': errors.content}"
-                    :disabled-menus="[]"
-                    :include-level="[1, 2, 3, 4]"
-                    @upload-image="handleUploadImage"
-                    style="max-height: 400px; overflow-y: auto;"
-                    :toolbar="[
-                      'bold',
-                      'italic',
-                      'strikethrough',
-                      'heading',
-                      'quote',
-                      'code',
-                      'link',
-                      'table',
-                      'list',
-                      'ordered-list',
-                      'hr',
-                      'undo',
-                      'redo',
-                      'preview'
-                    ]"
-                  ></v-md-editor>
+                    class="h-full"
+                    :toolbars="{
+                      bold: true,
+                      italic: true,
+                      header: true,
+                      underline: true,
+                      strikethrough: true,
+                      mark: true,
+                      superscript: true,
+                      subscript: true,
+                      quote: true,
+                      ol: true,
+                      ul: true,
+                      link: true,
+                      imagelink: true,
+                      code: true,
+                      table: true,
+                      undo: true,
+                      redo: true,
+                      trash: true,
+                      save: true,
+                      navigation: true,
+                      alignleft: true,
+                      aligncenter: true,
+                      alignright: true,
+                      preview: true
+                    }"
+                  />
                 </div>
                 <span v-if="errors.content" class="text-sm text-red-500">{{ errors.content }}</span>
               </div>

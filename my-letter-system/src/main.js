@@ -1,28 +1,10 @@
-import { createApp } from 'vue'
+import Vue from 'vue'
+import mavonEditor from 'mavon-editor'
+import 'mavon-editor/dist/css/index.css'
 import App from './App.vue'
-import './style.css'  // Add this line
 
-// Import v-md-editor and its dependencies
-import VueMarkdownEditor from '@kangc/v-md-editor';
-import '@kangc/v-md-editor/lib/style/base-editor.css';
-import vuepressTheme from '@kangc/v-md-editor/lib/theme/vuepress.js';
-import '@kangc/v-md-editor/lib/theme/style/vuepress.css';
-import enUS from '@kangc/v-md-editor/lib/lang/en-US';
+Vue.use(mavonEditor)
 
-// Prism
-import Prism from 'prismjs';
-import 'prismjs/components/prism-json';
-
-// Configure v-md-editor
-VueMarkdownEditor.use(vuepressTheme, {
-  Prism,
-  codeHighlightExtensionMap: {
-    vue: 'html',
-  },
-});
-VueMarkdownEditor.lang.use('en-US', enUS);
-
-// Create and mount the app
-const app = createApp(App);
-app.use(VueMarkdownEditor);
-app.mount('#app');
+new Vue({
+  render: h => h(App)
+}).$mount('#app')

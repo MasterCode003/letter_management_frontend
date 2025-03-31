@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@kangc/v-md-editor": "^1.7.12",
     "axios-retry": "^4.5.0",
     "codemirror": "^5.65.0",
+    "mavon-editor": "^2.10.4",
     "prismjs": "^1.30.0"
   },
   "devDependencies": {
