@@ -159,36 +159,10 @@
               <div class="space-y-2">
                 <label class="font-medium block text-lg">Content:</label>
                 <div class="relative h-[400px] border rounded-md">
-                  <mavon-editor 
+                  <md-editor 
                     v-model="letterForm.content"
                     :class="{'border-red-500': errors.content}"
-                    class="h-full"
-                    :toolbars="{
-                      bold: true,
-                      italic: true,
-                      header: true,
-                      underline: true,
-                      strikethrough: true,
-                      mark: true,
-                      superscript: true,
-                      subscript: true,
-                      quote: true,
-                      ol: true,
-                      ul: true,
-                      link: true,
-                      imagelink: true,
-                      code: true,
-                      table: true,
-                      undo: true,
-                      redo: true,
-                      trash: true,
-                      save: true,
-                      navigation: true,
-                      alignleft: true,
-                      aligncenter: true,
-                      alignright: true,
-                      preview: true
-                    }"
+                    height="400px"
                   />
                 </div>
                 <span v-if="errors.content" class="text-sm text-red-500">{{ errors.content }}</span>
@@ -286,8 +260,10 @@
 
 <script>
 import axios from 'axios';
-import { mavonEditor } from 'mavon-editor'
-import 'mavon-editor/dist/css/index.css'
+import VueMarkdownEditor from '@kangc/v-md-editor';
+import '@kangc/v-md-editor/lib/style/base-editor.css';
+import vuepressTheme from '@kangc/v-md-editor/lib/theme/vuepress.js';
+import '@kangc/v-md-editor/lib/theme/style/vuepress.css';
 
 // Update the apiClient configuration
 const apiClient = axios.create({
@@ -299,6 +275,8 @@ const apiClient = axios.create({
   },
   withCredentials: false  // Change to false
 });
+
+VueMarkdownEditor.use(vuepressTheme);
 
 export default {
   name: 'LetterForm',
