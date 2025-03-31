@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite'
-import vue2 from '@vitejs/plugin-vue2'
+import vue from '@vitejs/plugin-vue'  // Changed from plugin-vue2
 
 export default defineConfig({
-  plugins: [vue2()],
+  plugins: [vue()],  // Changed from vue2()
   server: {
-    host: true,  // This will expose to all network interfaces
+    host: true,
     port: 5173,
     open: true,
     proxy: {

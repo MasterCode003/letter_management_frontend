@@ -286,6 +286,8 @@
 
 <script>
 import axios from 'axios';
+import { mavonEditor } from 'mavon-editor'
+import 'mavon-editor/dist/css/index.css'
 
 // Update the apiClient configuration
 const apiClient = axios.create({
@@ -526,3 +528,5 @@ export default {
   emits: ['save-letter', 'update-letter', 'close']
 };
 </script>
+
+<!-- Remove the separate script setup section at the bottom -->

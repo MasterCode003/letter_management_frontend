@@ -1,18 +1,11 @@
 <template>
   <div id="app">
-    <LetterForm />
+    <router-view></router-view>
   </div>
 </template>
 
-<script>
-import LetterForm from './components/LetterForm.vue'
-
-export default {
-  name: 'App',
-  components: {
-    LetterForm
-  }
-}
+<script setup>
+// Router view is now handled by vue-router
 </script>
 
 <style>
