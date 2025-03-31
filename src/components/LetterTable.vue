@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+<div class="p-6">
     <!-- Remove the Network Status Indicator -->
     
     <!-- Header and Add New Letter button -->
@@ -92,33 +92,22 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <template v-if="letters.length">
               <tr v-for="letter in paginatedLetters" :key="letter.id">
-                <td class="px-6 py-4 whitespace-nowrap flex space-x-3">
-                  <button 
-                    @click="openEditModal(letter)" 
-                    class="p-2 rounded-lg text-blue-600 hover:text-blue-900 hover:bg-blue-100/50 transition-colors group relative"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                      Edit
-                    </span>
-                  </button>
-                  <button 
-                    @click="confirmDelete(letter.id)" 
-                    class="p-2 rounded-lg text-red-600 hover:text-red-900 hover:bg-red-100/50 transition-colors group relative"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                      Delete
-                    </span>
-                  </button>
-                  <div class="flex space-x-2">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex space-x-3">
                     <button 
-                      @click="previewLetter(letter)"
-                      class="p-2 rounded-lg text-green-600 hover:text-green-900 hover:bg-green-100/50 transition-colors group relative"
+                      @click="openEditModal(letter)" 
+                      class="p-2 rounded-lg text-blue-600 hover:text-blue-900 hover:bg-blue-100/50 transition-colors group relative"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        Edit
+                      </span>
+                    </button>
+                    <button 
+                      @click="previewLetter(letter)" 
+                      class="p-2 rounded-lg text-blue-600 hover:text-blue-900 hover:bg-blue-100/50 transition-colors group relative"
                     >
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -137,6 +126,17 @@
                       </svg>
                       <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
                         Download PDF
+                      </span>
+                    </button>
+                    <button 
+                      @click="confirmDelete(letter.id)"
+                      class="p-2 rounded-lg text-red-600 hover:text-red-900 hover:bg-red-100/50 transition-colors group relative"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        Delete
                       </span>
                     </button>
                   </div>
@@ -171,306 +171,275 @@
         </table>
       </div>
     </div>
-    <!-- After the table -->
-      
-      <!-- Update Letter Modal -->
-      <div v-if="showEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium">Update Letter</h3>
-            <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-      
-          <form @submit.prevent="handleUpdate" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Title -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Title</label>
-                <input
-                  v-model="currentLetter.title"
-                  type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-      
-              <!-- Type -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Type</label>
-                <select
-                  v-model="currentLetter.type"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                >
-                  <option value="memo">Memo</option>
-                  <option value="business-letter">Business Letter</option>
-                </select>
-              </div>
-      
-              <!-- Subject -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Subject</label>
-                <input
-                  v-model="currentLetter.subject"
-                  type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-      
-              <!-- Date -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Date</label>
-                <input
-                  v-model="currentLetter.date"
-                  type="date"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-      
-              <!-- Recipients -->
-              <div class="col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Recipients</label>
-                <select
-                  v-model="currentLetter.recipients"
-                  multiple
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                >
-                  <option v-for="recipient in recipients" :key="recipient.id" :value="recipient.name">
-                    {{ recipient.name }}
-                  </option>
-                </select>
-              </div>
-      
-              <!-- Content -->
-              <div class="col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Content</label>
-                <textarea
-                  v-model="currentLetter.content"
-                  rows="4"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                ></textarea>
-              </div>
-      
-              <!-- Sender Name -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Sender Name</label>
-                <input
-                  v-model="currentLetter.sender_name"
-                  type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-      
-              <!-- Sender Position -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Sender Position</label>
-                <input
-                  v-model="currentLetter.sender_position"
-                  type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-            </div>
-      
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="closeEditModal"
-                class="px-4 py-2 border rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              >
-                Update Letter
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
 
     <!-- Pagination -->
     <div class="mt-4 flex items-center justify-between">
-      <!-- ... pagination content ... -->
-    </div>
-  </div>  <!-- Add this closing div -->
-
-  <!-- Letter Form Modal -->
-  <LetterForm
-    v-if="showLetterForm"
-    :letter="selectedLetter"
-    @close="closeLetterForm"
-    @save="handleLetterSaved"
-  />
-
-  <!-- Update Letter Modal -->
-  <div v-if="showEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-medium">Update Letter</h3>
-        <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+      <div class="flex items-center gap-2">
+        <button
+          @click="previousPage"
+          :disabled="currentPage === 1"
+          class="px-3 py-1 border rounded-md disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <div class="flex gap-1">
+          <button
+            v-for="page in displayedPages"
+            :key="page"
+            @click="goToPage(page)"
+            :class="[
+              'px-3 py-1 border rounded-md',
+              currentPage === page ? 'bg-blue-500 text-white' : 'hover:bg-gray-50'
+            ]"
+          >
+            {{ page }}
+          </button>
+        </div>
+        <button
+          @click="nextPage"
+          :disabled="currentPage === totalPages"
+          class="px-3 py-1 border rounded-md disabled:opacity-50"
+        >
+          Next
         </button>
       </div>
-  
-      <form @submit.prevent="handleUpdate" class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Title -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Title</label>
-            <input
-              v-model="currentLetter.title"
-              type="text"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
+      <div class="text-sm text-gray-600">
+        Page {{ currentPage }} of {{ totalPages }}
+      </div>
+    </div>
+
+    <!-- Update Letter Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
+      <div class="flex items-center justify-center min-h-screen p-4 backdrop-blur-sm">
+        <div class="relative bg-white rounded-lg shadow-xl w-[85%] h-[85vh] max-w-[1200px]">
+          <!-- Fixed header -->
+          <div class="absolute top-0 left-0 right-0 bg-white px-6 py-3 border-b z-10">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-bold text-gray-900">Edit Letter</h2>
+              
+              <!-- Input field centered -->
+              <div class="flex-1 flex justify-center mx-4">
+                <div class="flex flex-col w-[500px]">
+                  <div class="relative">
+                    <input
+                      v-model="currentLetter.title"
+                      type="text"
+                      required
+                      placeholder="Enter letter title"
+                      class="w-full border-b-2 border-gray-300 focus:border-green-500 px-4 py-2 text-lg font-medium outline-none bg-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  @click="closeEditModal"
+                  class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  @click="handleUpdate"
+                  class="px-4 py-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Update
+                </button>
+              </div>
+            </div>
           </div>
-  
-          <!-- Type -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Type</label>
-            <select
-              v-model="currentLetter.type"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            >
-              <option value="memo">Memo</option>
-              <option value="business-letter">Business Letter</option>
-            </select>
-          </div>
-  
-          <!-- Subject -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Subject</label>
-            <input
-              v-model="currentLetter.subject"
-              type="text"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
-          </div>
-  
-          <!-- Date -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Date</label>
-            <input
-              v-model="currentLetter.date"
-              type="date"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
-          </div>
-  
-          <!-- Recipients -->
-          <div class="col-span-2">
-            <label class="block text-sm font-medium text-gray-700">Recipients</label>
-            <select
-              v-model="currentLetter.recipients"
-              multiple
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            >
-              <option v-for="recipient in recipients" :key="recipient.id" :value="recipient.name">
-                {{ recipient.name }}
-              </option>
-            </select>
-          </div>
-  
-          <!-- Content -->
-          <div class="col-span-2">
-            <label class="block text-sm font-medium text-gray-700">Content</label>
-            <textarea
-              v-model="currentLetter.content"
-              rows="4"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            ></textarea>
-          </div>
-  
-          <!-- Sender Name -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Sender Name</label>
-            <input
-              v-model="currentLetter.sender_name"
-              type="text"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
-          </div>
-  
-          <!-- Sender Position -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Sender Position</label>
-            <input
-              v-model="currentLetter.sender_position"
-              type="text"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
+          
+          <!-- Scrollable content -->
+          <div class="h-full overflow-y-auto pt-16 px-6 pb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+              <form @submit.prevent="handleUpdate" class="space-y-6">
+                <!-- Letter Type -->
+                <div class="flex items-center gap-4">
+                  <label class="font-medium w-24 text-lg">Type:</label>
+                  <div class="flex flex-col">
+                    <div class="relative">
+                      <select
+                        v-model="currentLetter.type"
+                        required
+                        class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
+                      >
+                        <option value="">Select Type</option>
+                        <option value="memo">Memo</option>
+                        <option value="business-letter">Business Letter</option>
+                      </select>
+                      <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subject -->
+                <div class="flex items-center gap-4">
+                  <label class="font-medium w-24 text-lg">Subject:</label>
+                  <input
+                    v-model="currentLetter.subject"
+                    type="text"
+                    required
+                    class="flex-1 border rounded-md px-4 py-2"
+                  />
+                </div>
+
+                <!-- Date -->
+                <div class="flex items-center gap-4">
+                  <label class="font-medium w-24 text-lg">Date:</label>
+                  <input
+                    v-model="currentLetter.date"
+                    type="date"
+                    required
+                    class="w-[200px] border rounded-md px-4 py-2"
+                  />
+                </div>
+
+                <!-- Replace the Recipients section in the edit modal -->
+                <!-- Recipients -->
+                <div class="space-y-4">
+                  <!-- FOR heading with add button -->
+                  <div class="flex items-center gap-4">
+                    <label class="font-medium w-24 text-lg">FOR:</label>
+                    <button
+                      type="button"
+                      @click="addNewRecipient"
+                      class="border rounded-md px-4 py-2 bg-gray-50 hover:bg-gray-100 text-base flex items-center gap-2"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Recipient
+                    </button>
+                  </div>
+
+                  <!-- Recipients list -->
+                  <div v-for="(recipient, index) in currentLetter.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                    <div class="flex-1">
+                      <div class="flex flex-col">
+                        <select
+                          v-model="recipient.id"
+                          class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
+                          @change="updateRecipient(index, recipient.id)"
+                        >
+                          <option value="">Select Recipient</option>
+                          <option 
+                            v-for="r in recipients" 
+                            :key="r.id" 
+                            :value="r.id"
+                          >
+                            {{ r.name }} - {{ r.position }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      v-if="currentLetter.recipients.length > 1"
+                      @click="removeRecipientAt(index)"
+                      type="button"
+                      class="text-red-600 hover:text-red-800"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Content -->
+                <div class="flex items-start gap-4">
+                  <label class="font-medium w-24 text-lg pt-2">Content:</label>
+                  <div class="flex-1">
+                    <QuillEditor
+                      v-model:content="currentLetter.content"
+                      contentType="html"
+                      theme="snow"
+                      toolbar="full"
+                      class="h-[300px]"
+                    />
+                  </div>
+                </div>
+
+                <!-- Sender Information -->
+                <div class="grid grid-cols-2 gap-6">
+                  <div class="flex items-center gap-4">
+                    <label class="font-medium w-24 text-lg">Name:</label>
+                    <input
+                      v-model="currentLetter.sender_name"
+                      type="text"
+                      required
+                      class="flex-1 border rounded-md px-4 py-2"
+                    />
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <label class="font-medium w-24 text-lg">Position:</label>
+                    <input
+                      v-model="currentLetter.sender_position"
+                      type="text"
+                      required
+                      class="flex-1 border rounded-md px-4 py-2"
+                    />
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-  
-        <div class="flex justify-end space-x-3 mt-6">
+      </div>
+    </div>
+
+    <!-- Letter Form Modal -->
+    <LetterForm
+      v-if="showLetterForm"
+      :letter="selectedLetter"
+      @close="closeLetterForm"
+      @save="handleLetterSaved"
+    />
+    
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+      <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+        <h3 class="text-lg font-medium mb-4">Confirm Delete</h3>
+        <p class="text-gray-600 mb-6">Are you sure you want to delete this letter? This action cannot be undone.</p>
+        <div class="flex justify-end space-x-3">
           <button
-            type="button"
-            @click="closeEditModal"
+            @click="showDeleteConfirmModal = false"
             class="px-4 py-2 border rounded-md hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
-            type="submit"
-            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            @click="deleteLetter(confirmDeleteId)"
+            class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
           >
-            Update Letter
+            Delete
           </button>
         </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Delete Confirmation Modal -->
-  <div v-if="showDeleteConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-      <h3 class="text-lg font-medium mb-4">Confirm Delete</h3>
-      <p class="text-gray-600 mb-6">Are you sure you want to delete this letter? This action cannot be undone.</p>
-      <div class="flex justify-end space-x-3">
-        <button
-          @click="showDeleteConfirmModal = false"
-          class="px-4 py-2 border rounded-md hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
-          @click="deleteLetter(confirmDeleteId)"
-          class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-        >
-          Delete
-        </button>
       </div>
     </div>
-  </div>
 
-  <!-- Success Message -->
-  <div
-    v-if="showDeleteSuccess"
-    class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg"
-  >
-    Letter deleted successfully
+    <!-- Success Message -->
+    <div
+      v-if="showDeleteSuccess"
+      class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg"
+    >
+      Letter deleted successfully
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-4 flex items-center justify-between">
+      <!-- ... pagination content ... -->
+    </div>
   </div>
 </template>
 
@@ -589,6 +558,13 @@ export default {
       const end = start + this.perPage;
       return this.filteredLetters.slice(start, end);
     },
+    // Update the availableRecipients computed property
+    availableRecipients() {
+    // Filter out already selected recipients
+    return this.recipients.filter(recipient => 
+    !this.selectedRecipients.includes(recipient.name)
+    );
+    },
   },
   async mounted() {
     try {
@@ -638,6 +614,33 @@ export default {
       this.showLetterForm = false;
       this.selectedLetter = null;
     },
+    addNewRecipient() {
+      if (!this.currentLetter.recipients) {
+        this.currentLetter.recipients = [];
+      }
+      this.currentLetter.recipients.push({
+        id: '',
+        name: '',
+        position: ''
+      });
+    },
+
+    removeRecipientAt(index) {
+      this.currentLetter.recipients.splice(index, 1);
+    },
+
+    updateRecipient(index, recipientId) {
+      const selectedRecipient = this.recipients.find(r => r.id === recipientId);
+      if (selectedRecipient) {
+        this.$set(this.currentLetter.recipients, index, {
+          id: selectedRecipient.id,
+          name: selectedRecipient.name,
+          position: selectedRecipient.position
+        });
+      }
+    },
+
+    // Update the openEditModal method to handle recipients properly
     async openEditModal(letter) {
       try {
         const letterData = { ...letter };
@@ -645,10 +648,43 @@ export default {
           letterData.recipients = JSON.parse(letterData.recipients);
         }
         this.currentLetter = letterData;
+        
+        // Initialize selectedRecipients with the letter's recipients
+        this.selectedRecipients = Array.isArray(letterData.recipients) 
+          ? letterData.recipients.map(r => typeof r === 'object' ? r.name : r)
+          : [];
+
+        // Ensure recipients are fetched
+        if (this.recipients.length === 0) {
+          await this.fetchRecipients();
+        }
+        
         this.showEditModal = true;
       } catch (error) {
         console.error('Error preparing letter data for edit:', error);
       }
+    },
+
+    // Update the addRecipient method
+    addRecipient(event) {
+      const selectedValue = event.target.value;
+      if (selectedValue && !this.selectedRecipients.includes(selectedValue)) {
+        this.selectedRecipients.push(selectedValue);
+        this.currentLetter.recipients = this.selectedRecipients;
+      }
+      event.target.value = ''; // Reset select
+    },
+
+    // Update the removeRecipient method
+    removeRecipient(recipient) {
+      this.selectedRecipients = this.selectedRecipients.filter(r => r !== recipient);
+      this.currentLetter.recipients = this.selectedRecipients;
+    },
+
+    closeEditModal() {
+      this.showEditModal = false;
+      this.currentLetter = null;
+      this.selectedRecipients = []; // Reset selected recipients
     },
     async handleLetterSaved(letterData) {
       try {
@@ -675,7 +711,7 @@ export default {
     async addLetter(letterData) {
       try {
         // Format recipients to ensure they are strings
-        const recipients = Array.isArray(letterData.recipients) 
+        const recipients = Array.isArray(letterData.recipients)
           ? letterData.recipients.map(recipient => 
               typeof recipient === 'object' ? recipient.name : String(recipient)
             )
@@ -742,6 +778,7 @@ export default {
         const response = await apiClient.get('/recipients');
         if (response.data.success) {
           this.recipients = response.data.data;
+          console.log('Recipients fetched:', this.recipients); // Add this line
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
@@ -828,52 +865,58 @@ export default {
       }
     },
 
-    previewLetter(letter) {
+    async previewLetter(letter) {
       try {
-        // First try to get the PDF blob
-        apiClient.get(`/letters/${letter.id}/preview`, {
-          responseType: 'blob'
-        }).then(response => {
-          // Create blob URL and open in new window
+        const response = await apiClient.get(`/letters/${letter.id}/preview`, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'application/pdf'
+          }
+        });
+
+        if (response.status === 200 && response.data) {
           const blob = new Blob([response.data], { type: 'application/pdf' });
           const blobUrl = window.URL.createObjectURL(blob);
           
-          // Open in new window
-          const newWindow = window.open();
-          if (newWindow) {
-            newWindow.document.write(`
-              <iframe 
-                src="${blobUrl}" 
-                style="width: 100%; height: 100vh; border: none;"
-                type="application/pdf"
-              ></iframe>
-            `);
-          }
-        }).catch(error => {
-          console.error('Error previewing letter:', error);
-          alert('Failed to preview PDF. Please try again.');
-        });
+          window.open(blobUrl, '_blank');
+        } else {
+          throw new Error('Failed to load PDF preview');
+        }
       } catch (error) {
         console.error('Error previewing letter:', error);
+        alert('Unable to preview the letter. The file might not be available or there was a server error.');
       }
     },
 
     async downloadLetter(letter) {
       try {
         const response = await apiClient.get(`/letters/${letter.id}/download`, {
-          responseType: 'blob'
+          responseType: 'blob',
+          headers: {
+            'Accept': 'application/pdf'
+          }
         });
-        
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `letter-${letter.id}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
+
+        if (response.status === 200 && response.data) {
+          const blob = new Blob([response.data], { type: 'application/pdf' });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `${letter.title || 'letter'}-${letter.id}.pdf`);
+          document.body.appendChild(link);
+          link.click();
+          
+          // Cleanup
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+        } else {
+          throw new Error('Failed to download file');
+        }
       } catch (error) {
         console.error('Error downloading letter:', error);
+        alert('Unable to download the letter. The file might not be available or there was a server error.');
       }
     },
 

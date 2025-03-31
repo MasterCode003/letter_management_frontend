@@ -155,28 +155,21 @@
                 <span v-if="errors.date" class="text-sm text-red-500 mt-1">{{ errors.date }}</span>
               </div>
 
-              <!-- In the content section -->
-              <div class="space-y-2">
-                <label class="font-medium block text-lg">Content:</label>
-                <div class="relative border rounded-md">
+              <!-- Replace the content section in your template -->
+              <!-- Content -->
+              <div class="flex items-start gap-4">
+                <label class="font-medium w-24 text-lg pt-2">Content:</label>
+                <div class="flex-1">
                   <QuillEditor
-                    v-model="letterForm.content"
+                    v-model:content="letterForm.content"
                     contentType="html"
                     theme="snow"
-                    :toolbar="[
-                      ['bold', 'italic', 'underline', 'strike'],
-                      ['blockquote', 'code-block'],
-                      [{ 'header': 1 }, { 'header': 2 }],
-                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                      [{ 'align': [] }],
-                      ['clean']
-                    ]"
-                    class="h-[400px]"
+                    toolbar="full"
+                    class="h-[300px]"
                     :class="{'border-red-500': errors.content}"
-                    :options="editorOptions"
                   />
+                  <span v-if="errors.content" class="text-sm text-red-500 mt-1">{{ errors.content }}</span>
                 </div>
-                <span v-if="errors.content" class="text-sm text-red-500">{{ errors.content }}</span>
               </div>
 
               <!-- Sender's Information Section -->
