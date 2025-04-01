@@ -7,6 +7,7 @@
             to="/letters" 
             class="px-6 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition-all duration-200"
             active-class="text-blue-600 border-blue-600"
+            :exact="true"
           >
             Letters
           </router-link>

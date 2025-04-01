@@ -1,44 +1,22 @@
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'  // Changed from plugin-vue2
+import vue from '@vitejs/plugin-vue'
+import path from 'path'
 
 export default defineConfig({
-  plugins: [vue()],  // Changed from vue2()
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
-    host: true,  // This allows access from network
-    port: 5173,
-    open: true,
-    proxy: {
-      '/api': {
-        target: 'http://192.168.8.36:8000',
-        changeOrigin: true,
-        secure: false,
-        timeout: 30000,
-        rewrite: (path) => path,  // Don't remove the /api prefix
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Request URL:', req.url);
-            console.log('Request Method:', req.method);
-            console.log('Request Body:', req.body);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            if (proxyRes.statusCode === 404) {
-              console.log('404 Not Found:', {
-                url: req.url,
-                method: req.method,
-                headers: req.headers
-              });
-            }
-          });
-        }
-      }
-    }
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,PATCH,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
   },
-  // Disable WebSocket connection status messages
-  hmr: {
-    overlay: false
+  optimizeDeps: {
+    include: ['axios', 'axios-retry', 'pdfjs-dist'],
   },
-  logLevel: 'error'
 })

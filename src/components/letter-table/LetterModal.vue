@@ -27,10 +27,11 @@
             </div>
 
             <!-- Buttons on right -->
+            <!-- Fix the header buttons section -->
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                @click="$emit('close')"
+                @click="handleCancel"
                 class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
               >
                 Cancel
@@ -43,7 +44,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                {{ editMode ? 'Update' : 'Save' }} 
+                {{ editMode ? 'Update' : 'Save' }}
               </button>
             </div>
           </div>
@@ -58,7 +59,6 @@
                 <label class="font-medium w-24 text-lg">Type:</label>
                 <div class="flex flex-col">
                   <div class="relative">
-                    <!-- Update the letter type select options -->
                     <select
                       v-model="letterForm.type"
                       :class="{'border-red-500': errors.type}"
@@ -129,35 +129,67 @@
                 </div>
               </div>
 
-              <!-- Subject -->
+              <!-- Subject field -->
               <div class="flex items-center gap-4">
                 <label class="font-medium w-24 text-lg">Subject:</label>
-                <input
-                  v-model="letterForm.subject"
-                  :class="{'border-red-500': errors.subject}"
-                  type="text"
-                  required
-                  placeholder="Title of the Letter"
-                  class="w-[500px] border rounded-md px-4 py-2 text-base"
-                />
-                <span v-if="errors.subject" class="text-sm text-red-500 mt-1">{{ errors.subject }}</span>
+                <div class="flex flex-col flex-1">
+                  <input
+                    v-model="letterForm.subject"
+                    :class="{'border-red-500': errors.subject}"
+                    type="text"
+                    required
+                    class="border rounded-md px-4 py-2"
+                  />
+                  <span v-if="errors.subject" class="text-sm text-red-500 mt-1">{{ errors.subject }}</span>
+                </div>
               </div>
 
-              <!-- Date -->
+              <!-- Date field -->
               <div class="flex items-center gap-4">
                 <label class="font-medium w-24 text-lg">Date:</label>
-                <input
-                  type="date"
-                  v-model="letterForm.date"
-                  :class="{'border-red-500': errors.date}"
-                  class="w-[500px] border rounded-md px-4 py-2 text-base"
-                />
-                <span v-if="errors.date" class="text-sm text-red-500 mt-1">{{ errors.date }}</span>
+                <div class="flex flex-col">
+                  <input
+                    v-model="letterForm.date"
+                    :class="{'border-red-500': errors.date}"
+                    type="date"
+                    required
+                    class="w-[200px] border rounded-md px-4 py-2"
+                  />
+                  <span v-if="errors.date" class="text-sm text-red-500 mt-1">{{ errors.date }}</span>
+                </div>
               </div>
 
-              <!-- Replace the content section in your template -->
+              <!-- Sender Information - Consolidated section -->
+              <div class="mt-4">
+                <h3 class="font-medium text-lg mb-4 border-b pb-2">Sender's Information:</h3>
+                <div class="grid grid-cols-2 gap-6">
+                  <div class="flex flex-col space-y-2">
+                    <label class="text-base font-medium">Name</label>
+                    <input
+                      type="text"
+                      v-model="letterForm.sender_name"
+                      :class="{'border-red-500': errors.sender_name}"
+                      placeholder="Enter sender's name"
+                      class="w-full border rounded-md px-4 py-2"
+                    />
+                    <span v-if="errors.sender_name" class="text-sm text-red-500">{{ errors.sender_name }}</span>
+                  </div>
+                  <div class="flex flex-col space-y-2">
+                    <label class="text-base font-medium">Position/Title</label>
+                    <input
+                      type="text"
+                      v-model="letterForm.sender_position"
+                      :class="{'border-red-500': errors.sender_position}"
+                      placeholder="Enter sender's position"
+                      class="w-full border rounded-md px-4 py-2"
+                    />
+                    <span v-if="errors.sender_position" class="text-sm text-red-500">{{ errors.sender_position }}</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Content -->
-              <div class="flex items-start gap-4">
+              <div class="flex items-start gap-4 mt-6">
                 <label class="font-medium w-24 text-lg pt-2">Content:</label>
                 <div class="flex-1">
                   <QuillEditor
@@ -169,35 +201,6 @@
                     :class="{'border-red-500': errors.content}"
                   />
                   <span v-if="errors.content" class="text-sm text-red-500 mt-1">{{ errors.content }}</span>
-                </div>
-              </div>
-
-              <!-- Sender's Information Section -->
-              <div class="mt-8">
-                <h3 class="font-medium text-lg mb-4 border-b pb-2">Sender's Information:</h3>
-                <div class="flex gap-6">
-                  <div class="flex-1 space-y-2">
-                    <label class="text-base font-medium">Name</label>
-                    <input
-                      type="text"
-                      v-model="letterForm.sender_name"
-                      :class="{'border-red-500': errors.sender_name}"
-                      placeholder="Enter sender's name"
-                      class="w-full border rounded-md px-4 py-2"
-                    />
-                    <span v-if="errors.sender_name" class="text-sm text-red-500">{{ errors.sender_name }}</span>
-                  </div>
-                  <div class="flex-1 space-y-2">
-                    <label class="text-base font-medium">Position/Title</label>
-                    <input
-                      type="text"
-                      v-model="letterForm.sender_position"
-                      :class="{'border-red-500': errors.sender_position}"
-                      placeholder="Enter sender's position"
-                      class="w-full border rounded-md px-4 py-2"
-                    />
-                    <span v-if="errors.sender_position" class="text-sm text-red-500">{{ errors.sender_position }}</span>
-                  </div>
                 </div>
               </div>
             </form>
@@ -244,7 +247,14 @@
             @click="showConfirmModal = false"
             class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
           >
-            Cancel
+            <!-- In the template section, update the cancel button -->
+            <button
+              type="button"
+              @click="$emit('close')"
+              class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
           </button>
         </div>
       </div>
@@ -270,9 +280,8 @@ import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { nextTick } from 'vue'
 
-// Update axios configuration with your IP address
 const apiClient = axios.create({
-  baseURL: 'http://192.168.8.36:8000/api',  // Changed to your network IP
+  baseURL: 'http://192.168.8.36:8000/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -281,90 +290,54 @@ const apiClient = axios.create({
   timeout: 15000
 });
 
-// Add interceptor for better error handling
-apiClient.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error);
-    if (error.code === 'ERR_NETWORK') {
-      alert('Cannot connect to server. Please check if the backend is running.');
-    }
-    return Promise.reject(error);
-  }
-);
-
 export default {
   name: 'LetterForm',
   components: {
     QuillEditor
   },
+  props: {
+    letter: {
+      type: Object,
+      default: () => ({})
+    }
+  },
   data() {
     return {
-      // Remove editor and editorConfig
-      // editor: ClassicEditor,
-      // editorConfig: {
-      //   placeholder: 'Write your content here...',
-      //   toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']
-      // },
-      formData: {
-        title: '',
-        subject: '',
-        type: '',
-        date: '',
-        recipients: [],
-        content: ''
-      },
-      showConfirmModal: false, // Add this line
-      localRecipients: [],
       letterForm: {
-        id: this.editMode && this.letterData ? this.letterData.id : Date.now().toString(),
-        title: this.editMode && this.letterData ? this.letterData.title : '',
-        type: this.editMode && this.letterData ? this.letterData.type : '',
-        subject: this.editMode && this.letterData ? this.letterData.subject : '',
-        content: this.editMode && this.letterData ? this.letterData.content : '',
-        recipients: this.editMode && this.letterData && this.letterData.recipients ? 
-          this.letterData.recipients : 
-          [{ id: '', name: '', position: '' }],
-        date: this.editMode && this.letterData ? this.letterData.date : new Date().toISOString().split('T')[0],
-        sender: {
-          name: this.editMode && this.letterData ? this.letterData.sender?.name || '' : '',
-          position: this.editMode && this.letterData ? this.letterData.sender?.position || '' : ''
-        }
-      },
-      errors: {  // Add this errors object
         title: '',
         type: '',
         subject: '',
+        date: new Date().toISOString().split('T')[0],
+        recipients: [{ id: '', name: '', position: '' }],
         content: '',
-        date: '',
-        recipients: '',
         sender_name: '',
         sender_position: ''
       },
+      errors: {},
+      showConfirmModal: false,
       showSuccess: false,
-      showUpdateFormModal: false,
-      recipientForm: {
-        id: '',
-        name: '',
-        position: ''
-      },
-      recipientsList: [], // We'll use only this for recipients
-      // Remove localRecipients as we don't need it
-    };
-  },
-
-  computed: {
-    availableRecipients() {
-      return (currentIndex) => {
-        const selectedIds = this.letterForm.recipients
-          .map((r, i) => i !== currentIndex ? r.id : null)
-          .filter(id => id);
-        return this.recipientsList.filter(r => !selectedIds.includes(r.id));
-      };
+      recipientsList: [],
+      editMode: false,
+      isSubmitting: false
     }
   },
-
+  created() {
+    if (this.letter && Object.keys(this.letter).length > 0) {
+      this.editMode = true;
+      this.letterForm = {
+        ...this.letter,
+        date: this.formatDateForInput(this.letter.date),
+        recipients: Array.isArray(this.letter.recipients) 
+          ? this.letter.recipients 
+          : [this.letter.recipients]
+      };
+    }
+    this.fetchRecipients();
+  },
   methods: {
+    closeModal() {
+      this.$emit('close');
+    },
     addRecipient() {
       this.letterForm.recipients.push({ 
         id: '', 
@@ -381,7 +354,6 @@ export default {
 
     async fetchRecipients() {
       try {
-        // Add error handling and retry logic
         const response = await apiClient.get('/recipients', {
           validateStatus: function (status) {
             return status >= 200 && status < 500;
@@ -401,7 +373,6 @@ export default {
       } catch (error) {
         console.error('Error fetching recipients:', error);
         this.recipientsList = [];
-        // You might want to show an error message to the user
         alert('Unable to fetch recipients. Please check your connection and try again.');
       }
     },
@@ -426,88 +397,78 @@ export default {
           alert('This recipient has already been selected');
         }
       }
-    },  // Add comma here
+    },
 
-    handleSubmit() {
-      // Reset previous errors
-      Object.keys(this.errors).forEach(key => this.errors[key] = '');
-      
-      // Validate form
-      let isValid = true;
-      
-      if (!this.letterForm.title.trim()) {
-        this.errors.title = 'Title is required';
-        isValid = false;
+    async handleSubmit() {
+      try {
+        // Validate form data
+        const errors = this.validateForm();
+        if (Object.keys(errors).length > 0) {
+          this.errors = errors;
+          return;
+        }
+
+        // Prepare the data to be saved
+        const letterData = {
+          ...this.letterForm,
+          recipients: this.selectedRecipients
+        };
+
+        // Emit the save event with the complete data
+        this.$emit('save', letterData);
+        
+        // Clear errors on success
+        this.errors = {};
+      } catch (error) {
+        console.error('Form submission error:', error);
       }
-      
+    },
+
+    validateForm() {
+      const errors = {};
+      if (!this.letterForm.title) {
+        errors.title = 'Title is required';
+      }
       if (!this.letterForm.type) {
-        this.errors.type = 'Type is required';
-        isValid = false;
+        errors.type = 'Type is required';
       }
-      
-      if (!this.letterForm.subject.trim()) {
-        this.errors.subject = 'Subject is required';
-        isValid = false;
-      }
-      
-      if (!this.letterForm.content.trim()) {
-        this.errors.content = 'Content is required';
-        isValid = false;
-      }
-      
-      if (!this.letterForm.date) {
-        this.errors.date = 'Date is required';
-        isValid = false;
-      }
-      
-      if (!this.letterForm.recipients[0].id) {
-        this.errors.recipients = 'At least one recipient is required';
-        isValid = false;
-      }
-
-      if (!this.letterForm.sender.name.trim()) {
-        this.errors.senderName = 'Sender name is required';
-        isValid = false;
-      }
-
-      if (!this.letterForm.sender.position.trim()) {
-        this.errors.senderPosition = 'Sender position is required';
-        isValid = false;
-      }
-
-      if (isValid) {
-        this.showConfirmModal = true;
-      }
-    },  // Add comma here
+      // Add other validations as needed
+      return errors;
+    },  // Added comma here
 
     async confirmSubmit() {
+      this.isSubmitting = true;
       try {
         const letterData = {
           ...(this.editMode ? { id: this.letterForm.id } : {}),
           title: this.letterForm.title,
-          type: this.letterForm.type,  // Changed from letter_type to type
+          type: this.letterForm.type,
           subject: this.letterForm.subject,
           content: this.letterForm.content,
           date: this.letterForm.date,
-          recipients: this.letterForm.recipients.filter(r => r.id),
-          sender_name: this.letterForm.sender.name,      // Changed from sender.name
-          sender_position: this.letterForm.sender.position  // Changed from sender.position
+          recipients: this.letterForm.recipients
+            .filter(r => r.id)
+            .map(r => ({
+              id: r.id,
+              name: r.name,
+              position: r.position
+            })),
+          sender_name: this.letterForm.sender_name,
+          sender_position: this.letterForm.sender_position
         };
-
+    
         if (this.editMode) {
-          const response = await this.$emit('update-letter', letterData);
-          console.log('Updated letter:', response);
+          this.$emit('update-letter', letterData);
+          console.log('Emitted update-letter with data:', letterData);
         } else {
-          const response = await this.$emit('save-letter', letterData);
-          console.log('Saved letter:', response);
+          this.$emit('save-letter', letterData);
+          console.log('Emitted save-letter with data:', letterData);
         }
-
+    
         this.showConfirmModal = false;
         this.showSuccess = true;
-        
-        // Emit a refresh event to update the table
         this.$emit('refresh-letters');
-        
+    
         setTimeout(() => {
           this.showSuccess = false;
           this.$emit('close');
@@ -515,10 +476,17 @@ export default {
       } catch (error) {
         console.error('Error saving letter:', error);
         alert('An error occurred while saving the letter. Please try again.');
+      } finally {
+        this.isSubmitting = false;
       }
+    },
+    
+    formatDateForInput(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
     }
-  },  // Close methods object with comma
-
+  },
   mounted() {
     this.fetchRecipients();
     
@@ -530,7 +498,7 @@ export default {
         editor.style.overflowY = 'auto';
       }
     });
-  },
+  }
 }
 </script>
 
