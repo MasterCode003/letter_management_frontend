@@ -1,26 +1,18 @@
 
 <template>
   <div class="p-6">
-    <!-- Header -->
-    <div class="flex justify-end items-center mb-6">
-      <!-- Update the New button click handler -->
-      <button 
-        @click="$router.push('/letters/new')" 
-        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        New
-      </button>
-      
-      <!-- Update the router-view section -->
-      <router-view 
-        v-if="$route.name === 'letter-new' || $route.name === 'letter-edit'"
-        @letter-saved="handleLetterSaved"
-        @close="$router.push('/letters')"
-      ></router-view>
-    </div>
+    <!-- Search Filters Component with New Button -->
+    <SearchFilters
+      :filters="{
+        searchQuery,
+        searchSubject,
+        searchRecipient,
+        selectedType,
+        dateRange
+      }"
+      @update:filters="updateFilters"
+      @new-letter="handleNewLetterClick"
+    />
 
     <!-- Table -->
     <div class="bg-white rounded-lg shadow">
@@ -37,7 +29,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="letter in letters" :key="letter.id">
+            <tr v-for="letter in paginatedLetters" :key="letter.id">
               <td class="px-6 py-4 whitespace-nowrap">
                 <LetterActions 
                   :letter="letter"
@@ -80,10 +72,23 @@
       </div>
     </div>
 
-    <!-- Letter Modal -->
+    <!-- Add Pagination Component -->
+    <TablePagination
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :displayed-pages="displayedPages"
+      @previous="previousPage"
+      @next="nextPage"
+      @goto-page="goToPage"
+    />
+
+    <!-- Letter Modal remains the same -->
     <LetterModal
       v-if="showModal"
-      @close="showModal = false"
+      @close="closeModal"
+      @save-letter="handleLetterSaved"
+      @update-letter="handleLetterSaved"
+      @refresh-letters="fetchLetters"
       :letter="selectedLetter"
     />
   </div>
@@ -93,18 +98,22 @@
 import apiClient from '@/utils/apiClient';
 import LetterModal from './LetterModal.vue';
 import LetterActions from './LetterActions.vue';
-import * as pdfjsLib from 'pdfjs-dist';
+import SearchFilters from './SearchFilters.vue';
+import TablePagination from './TablePagination.vue';
 
 export default {
   components: {
     LetterModal,
-    LetterActions
+    LetterActions,
+    SearchFilters,
+    TablePagination
   },
   emits: ['refresh-letters'],
   data() {
     return {
       letters: [],
       recipients: [],
+      showModal: false,  // Add this line
       showLetterForm: false,
       showEditModal: false,
       showDeleteConfirmModal: false,
@@ -220,11 +229,16 @@ export default {
       this.showEditModal = false;
       this.currentLetter = null;
     },
-    // Remove or update handleNewLetterClick as we're using router now
+    // Remove the duplicate handleNewLetterClick method and update it to handle both modal and routing
     handleNewLetterClick() {
-      this.$router.push('/letters/new');
+      this.selectedLetter = null;
+      this.showModal = true;
     },
     
+    closeModal() {
+      this.showModal = false;
+      this.selectedLetter = null;
+    },
     // Update handleLetterSaved
     async handleLetterSaved(letterData) {
       try {

@@ -27,14 +27,17 @@
             </div>
 
             <!-- Buttons on right -->
-            <!-- Fix the header buttons section -->
+            <!-- Update the header buttons section -->
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                @click="handleCancel"
-                class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+                @click="handleBack"
+                class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
               >
-                Cancel
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back
               </button>
               <button
                 type="submit"
@@ -53,6 +56,7 @@
         <!-- Scrollable content -->
         <div class="h-full overflow-y-auto pt-16 px-6 pb-6">
           <div class="bg-white rounded-lg shadow p-6">
+            <!-- Inside the form element, reorder the sections -->
             <form @submit.prevent="handleSubmit" class="space-y-6">
               <!-- Letter Type -->
               <div class="flex items-center gap-4">
@@ -159,9 +163,25 @@
                 </div>
               </div>
 
-              <!-- Sender Information - Consolidated section -->
-              <div class="mt-4">
-                <h3 class="font-medium text-lg mb-4 border-b pb-2">Sender's Information:</h3>
+              <!-- Content - Moved up -->
+              <div class="flex items-start gap-4 mt-6">
+                <label class="font-medium w-24 text-lg pt-2">Content:</label>
+                <div class="flex-1">
+                  <QuillEditor
+                    v-model:content="letterForm.content"
+                    contentType="html"
+                    theme="snow"
+                    toolbar="full"
+                    class="h-[300px]"
+                    :class="{'border-red-500': errors.content}"
+                  />
+                  <span v-if="errors.content" class="text-sm text-red-500 mt-1">{{ errors.content }}</span>
+                </div>
+              </div>
+
+              <!-- Sender Information - Moved to bottom -->
+              <div class="mt-8 pt-6 border-t">
+                <h3 class="font-medium text-lg mb-4">Sender's Information:</h3>
                 <div class="grid grid-cols-2 gap-6">
                   <div class="flex flex-col space-y-2">
                     <label class="text-base font-medium">Name</label>
@@ -185,22 +205,6 @@
                     />
                     <span v-if="errors.sender_position" class="text-sm text-red-500">{{ errors.sender_position }}</span>
                   </div>
-                </div>
-              </div>
-
-              <!-- Content -->
-              <div class="flex items-start gap-4 mt-6">
-                <label class="font-medium w-24 text-lg pt-2">Content:</label>
-                <div class="flex-1">
-                  <QuillEditor
-                    v-model:content="letterForm.content"
-                    contentType="html"
-                    theme="snow"
-                    toolbar="full"
-                    class="h-[300px]"
-                    :class="{'border-red-500': errors.content}"
-                  />
-                  <span v-if="errors.content" class="text-sm text-red-500 mt-1">{{ errors.content }}</span>
                 </div>
               </div>
             </form>
@@ -295,6 +299,13 @@ export default {
   components: {
     QuillEditor
   },
+  emits: [
+    'close',
+    'save',
+    'save-letter',
+    'update-letter',
+    'refresh-letters'
+  ],
   props: {
     letter: {
       type: Object,
@@ -377,28 +388,6 @@ export default {
       }
     },
 
-    updateRecipient(index, recipientId) {
-      const selectedRecipient = this.recipientsList.find(r => r.id === recipientId);
-      if (selectedRecipient) {
-        const newRecipient = {
-          id: selectedRecipient.id,
-          name: selectedRecipient.name,
-          position: selectedRecipient.position
-        };
-        
-        const isDuplicate = this.letterForm.recipients.some((r, i) => 
-          i !== index && r.id === recipientId
-        );
-
-        if (!isDuplicate) {
-          this.letterForm.recipients.splice(index, 1, newRecipient);
-        } else {
-          this.letterForm.recipients[index] = { id: '', name: '', position: '' };
-          alert('This recipient has already been selected');
-        }
-      }
-    },
-
     async handleSubmit() {
       try {
         // Validate form data
@@ -408,17 +397,8 @@ export default {
           return;
         }
 
-        // Prepare the data to be saved
-        const letterData = {
-          ...this.letterForm,
-          recipients: this.selectedRecipients
-        };
-
-        // Emit the save event with the complete data
-        this.$emit('save', letterData);
-        
-        // Clear errors on success
-        this.errors = {};
+        // Show confirmation modal instead of directly emitting
+        this.showConfirmModal = true;
       } catch (error) {
         console.error('Form submission error:', error);
       }
@@ -434,72 +414,87 @@ export default {
       }
       // Add other validations as needed
       return errors;
-    },  // Added comma here
+    },
 
-    async confirmSubmit() {
-      this.isSubmitting = true;
+    updateRecipient(index, recipient) {
       try {
-        const letterData = {
-          ...(this.editMode ? { id: this.letterForm.id } : {}),
-          title: this.letterForm.title,
-          type: this.letterForm.type,
-          subject: this.letterForm.subject,
-          content: this.letterForm.content,
-          date: this.letterForm.date,
-          recipients: this.letterForm.recipients
-            .filter(r => r.id)
-            .map(r => ({
-              id: r.id,
-              name: r.name,
-              position: r.position
-            })),
-          sender_name: this.letterForm.sender_name,
-          sender_position: this.letterForm.sender_position
-        };
-    
-        if (this.editMode) {
-          this.$emit('update-letter', letterData);
-          console.log('Emitted update-letter with data:', letterData);
-        } else {
-          this.$emit('save-letter', letterData);
-          console.log('Emitted save-letter with data:', letterData);
+        // Handle string input (name only)
+        if (typeof recipient === 'string') {
+          this.letterForm.recipients[index] = {
+            id: '',
+            name: recipient,
+            position: ''
+          };
+          return;
         }
-    
-        this.showConfirmModal = false;
-        this.showSuccess = true;
-        this.$emit('refresh-letters');
-    
-        setTimeout(() => {
-          this.showSuccess = false;
-          this.$emit('close');
-        }, 2000);
+
+        // Handle array input (first item)
+        if (Array.isArray(recipient)) {
+          const [firstRecipient] = recipient;
+          this.letterForm.recipients[index] = {
+            id: firstRecipient?.id || '',
+            name: firstRecipient?.name || firstRecipient || '',
+            position: firstRecipient?.position || ''
+          };
+          return;
+        }
+
+        // Handle object input
+        if (typeof recipient === 'object' && recipient !== null) {
+          this.letterForm.recipients[index] = {
+            id: recipient.id || '',
+            name: recipient.name || '',
+            position: recipient.position || ''
+          };
+          return;
+        }
+
+        // Handle invalid input
+        this.letterForm.recipients[index] = { id: '', name: '', position: '' };
       } catch (error) {
-        console.error('Error saving letter:', error);
-        alert('An error occurred while saving the letter. Please try again.');
-      } finally {
-        this.isSubmitting = false;
+        console.error('Error updating recipient:', error);
+        this.letterForm.recipients[index] = { id: '', name: '', position: '' };
       }
     },
-    
+
     formatDateForInput(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
       return date.toISOString().split('T')[0];
-    }
-  },
-  mounted() {
-    this.fetchRecipients();
-    
-    // Modern approach to handle editor initialization
-    nextTick(() => {
-      const editor = document.querySelector('.ql-editor');
-      if (editor) {
-        editor.style.height = '350px';
-        editor.style.overflowY = 'auto';
+    },
+
+    handleBack() {
+      const hasUnsavedChanges = this.checkUnsavedChanges();
+      
+      if (hasUnsavedChanges) {
+        if (confirm('You have unsaved changes. Are you sure you want to go back?')) {
+          this.$emit('close');
+          this.$router.push('/letters');
+        }
+      } else {
+        this.$emit('close');
+        this.$router.push('/letters');
       }
-    });
+    },
+
+    checkUnsavedChanges() {
+      const initialForm = this.letter || {
+        title: '',
+        type: '',
+        subject: '',
+        date: new Date().toISOString().split('T')[0],
+        recipients: [{ id: '', name: '', position: '' }],
+        content: '',
+        sender_name: '',
+        sender_position: ''
+      };
+
+      return JSON.stringify(this.letterForm) !== JSON.stringify(initialForm);
+    }
   }
 }
+
+// Remove the second export default completely
 </script>
 
 <style>
