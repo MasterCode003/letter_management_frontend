@@ -285,7 +285,7 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { nextTick } from 'vue'
 
 const apiClient = axios.create({
-  baseURL: 'http://192.168.8.36:8000/api',
+  baseURL: 'http://192.168.5.56:8000/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
