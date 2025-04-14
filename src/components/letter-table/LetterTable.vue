@@ -614,35 +614,57 @@ export default {
 
     async exportToWord(letter) {
       try {
-        // First get the template URL from your API
+        console.log('Exporting letter to Word:', letter.id);
+        
         const response = await apiClient.get(`/letters/${letter.id}/export-word`, {
           responseType: 'blob',
           headers: {
-            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
           }
         });
     
-        // Create blob and download
+        // Validate response
+        if (!response.data || response.data.size === 0) {
+          throw new Error('Empty document received from server');
+        }
+    
+        console.log('Word document size:', response.data.size);
+    
+        // Create blob with proper MIME type
         const blob = new Blob([response.data], { 
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         });
-        
-        // Create download link
+    
+        if (blob.size === 0) {
+          throw new Error('Generated document is empty');
+        }
+    
+        // Create and trigger download
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${letter.title || 'letter'}.docx`;
+        link.download = `${letter.title || 'letter'}_${new Date().toISOString().split('T')[0]}.docx`;
         
-        // Trigger download
         document.body.appendChild(link);
         link.click();
         
         // Cleanup
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+    
       } catch (error) {
-        console.error('Error exporting to Word:', error);
-        alert('Failed to export to Word. Please ensure the letter exists and try again.');
+        console.error('Word Export Error:', {
+          message: error.message,
+          response: error.response,
+          status: error.response?.status,
+          contentType: error.response?.headers?.['content-type'],
+          size: error.response?.data?.size
+        });
+        alert('Failed to export Word document. Please try again.');
       }
     }
   }
