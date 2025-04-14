@@ -54,7 +54,6 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
               <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
-              <!-- In the template section, update the type column -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="{
                   'px-2 py-1 rounded-full text-xs font-medium': true,
@@ -249,23 +248,25 @@ export default {
       return this.letters.filter(letter => {
         const matchesTitle = letter.title?.toLowerCase().includes(this.searchQuery.toLowerCase()) ?? false;
         const matchesSubject = letter.subject?.toLowerCase().includes(this.searchSubject.toLowerCase()) ?? false;
-        // Update this line to use letter.type instead of letter.type?.toLowerCase()
         const matchesType = this.selectedType ? letter.type === this.selectedType : true;
         
-        // Rest of the code remains the same
         const matchesRecipient = this.searchRecipient ? 
           (Array.isArray(letter.recipients) ? 
-            letter.recipients.some(r => r.toLowerCase().includes(this.searchRecipient.toLowerCase())) :
-            String(letter.recipients).toLowerCase().includes(this.searchRecipient.toLowerCase())
+            letter.recipients.some(r => 
+              r.name?.toLowerCase().includes(this.searchRecipient.toLowerCase()) ||
+              r.position?.toLowerCase().includes(this.searchRecipient.toLowerCase())
+            ) :
+            false
           ) : true;
         
         const letterDate = new Date(letter.date);
         const matchesDateRange = (!this.dateRange.start || letterDate >= new Date(this.dateRange.start)) &&
-                                   (!this.dateRange.end || letterDate <= new Date(this.dateRange.end));
+                               (!this.dateRange.end || letterDate <= new Date(this.dateRange.end));
         
         return matchesTitle && matchesSubject && matchesType && matchesRecipient && matchesDateRange;
       });
     },
+
     displayedPages() {
       const pages = [];
       const maxVisiblePages = 5;
@@ -356,37 +357,11 @@ export default {
           throw new Error('Letter data is undefined');
         }
 
-        console.log('Original letter data:', letterData);
-
-        // Validate recipients
-        if (!letterData.recipients || !Array.isArray(letterData.recipients) || letterData.recipients.length === 0) {
-          throw new Error('Please select at least one recipient');
-        }
-
-        // Ensure each recipient has required fields
-        const validRecipients = letterData.recipients.filter(recipient => 
-          recipient && 
-          recipient.id && 
-          recipient.name && 
-          recipient.name.trim()
-        );
-
-        if (validRecipients.length === 0) {
-          throw new Error('At least one recipient with a name is required');
-        }
-
-        // Update letterData with validated recipients
-        const updatedLetterData = {
-          ...letterData,
-          recipients: validRecipients
-        };
-
-        console.log('Processed letter data:', updatedLetterData);
-
+        // Remove recipient validation from here since it's handled in LetterModal
         if (letterData.id) {
-          await this.updateLetter(updatedLetterData);
+          await this.updateLetter(letterData);
         } else {
-          await this.addLetter(updatedLetterData);
+          await this.addLetter(letterData);
         }
         
         this.showLetterForm = false;
@@ -401,40 +376,51 @@ export default {
 
     async addLetter(letterData) {
       try {
-        // Ensure we have valid recipients with names
-        if (!letterData.recipients || !letterData.recipients.length) {
+        // Ensure recipients are properly formatted with name/position
+        const recipients = [];
+        if (Array.isArray(letterData.recipients)) {
+          for (const recipient of letterData.recipients) {
+            if (typeof recipient === 'object') {
+              recipients.push({
+                name: (recipient.name || '').trim(),
+                position: (recipient.position || '').trim()
+              });
+            } else {
+              // Handle case where recipient is just an ID
+              const foundRecipient = this.recipients.find(r => r.id === recipient);
+              if (foundRecipient) {
+                recipients.push({
+                  name: foundRecipient.name.trim(),
+                  position: foundRecipient.position.trim()
+                });
+              }
+            }
+          }
+        }
+        if (recipients.length === 0) {
           throw new Error('At least one recipient with a name is required');
         }
 
-        // Format recipients with both IDs and names
-        const recipients = letterData.recipients.map(recipient => ({
-          id: recipient.id,
-          name: recipient.name,
-          position: recipient.position || ''
-        }));
-
         const formattedData = {
-          title: letterData.title?.trim() || '',
-          subject: letterData.subject?.trim() || '',
-          type: letterData.type || '',
-          date: this.formatDateForInput(letterData.date),
-          recipients: recipients, // Send full recipient objects
-          recipient_ids: recipients.map(r => r.id),
-          content: letterData.content?.trim() || '',
-          sender_name: letterData.sender_name?.trim() || '',
-          sender_position: letterData.sender_position?.trim() || ''
+          title: letterData.title?.trim(),
+          subject: letterData.subject?.trim(),
+          type: letterData.type,
+          date: letterData.date ? this.formatDateForInput(letterData.date) : this.formatDateForInput(new Date()),
+          recipients: recipients,
+          content: letterData.content?.trim(),
+          sender_name: letterData.sender_name?.trim(),
+          sender_position: letterData.sender_position?.trim()
         };
-
-        console.log('Sending formatted data:', formattedData);
 
         const response = await apiClient.post('/letters', formattedData);
         
-        if (response.data.success) {
+        if (response?.data?.success) {
           await this.fetchLetters();
-          this.showLetterForm = false;
-          this.currentPage = 1;
-          this.$emit('refresh-letters');
+          this.showModal = false;
+          return response.data;
         }
+        
+        throw new Error(response?.data?.message || 'Failed to save letter');
       } catch (error) {
         console.error('Error adding letter:', error);
         throw error;
@@ -447,42 +433,48 @@ export default {
           throw new Error('Letter ID is required for update');
         }
 
-        // Log incoming data for debugging
-        console.log('Incoming letter data:', letterData);
-
-        // Ensure recipients is properly formatted
-        if (!letterData.recipients || !Array.isArray(letterData.recipients) || letterData.recipients.length === 0) {
+        // Ensure recipients are properly formatted with name/position
+        const recipients = [];
+        if (Array.isArray(letterData.recipients)) {
+          for (const recipient of letterData.recipients) {
+            if (typeof recipient === 'object') {
+              recipients.push({
+                name: (recipient.name || '').trim(),
+                position: (recipient.position || '').trim()
+              });
+            } else {
+              // Handle case where recipient is just an ID
+              const foundRecipient = this.recipients.find(r => r.id === recipient);
+              if (foundRecipient) {
+                recipients.push({
+                  name: foundRecipient.name.trim(),
+                  position: foundRecipient.position.trim()
+                });
+              }
+            }
+          }
+        }
+        if (recipients.length === 0) {
           throw new Error('At least one recipient with a name is required');
         }
 
-        // Format recipients
-        const recipients = letterData.recipients.map(recipient => ({
-          id: Number(recipient.id),
-          name: recipient.name,
-          position: recipient.position || ''
-        }));
-
         const formattedData = {
           id: letterData.id,
-          title: letterData.title?.trim() || '',
-          subject: letterData.subject?.trim() || '',
-          type: letterData.type || '',
-          date: this.formatDateForInput(letterData.date),
+          title: letterData.title?.trim(),
+          subject: letterData.subject?.trim(),
+          type: letterData.type,
+          date: this.formatDateForInput(letterData.date || new Date()),
           recipients: recipients,
-          recipient_ids: recipients.map(r => r.id),
-          content: letterData.content?.trim() || '',
-          sender_name: letterData.sender_name?.trim() || '',
-          sender_position: letterData.sender_position?.trim() || ''
+          content: letterData.content?.trim(),
+          sender_name: letterData.sender_name?.trim(),
+          sender_position: letterData.sender_position?.trim()
         };
-
-        console.log('Formatted data being sent:', formattedData);
 
         const response = await apiClient.put(`/letters/${letterData.id}`, formattedData);
         
         if (response.data?.success) {
           await this.fetchLetters();
           this.showModal = false;
-          this.$emit('refresh-letters');
           return response.data;
         }
 
@@ -603,7 +595,192 @@ export default {
 
     // Add edit modal method
     openEditModal(letter) {
-      this.selectedLetter = { ...letter };
+      // Format recipients without using ID
+      const formattedRecipients = letter.recipients?.map(recipient => ({
+        name: (recipient.name || recipient.text || '').trim(),
+        position: (recipient.position || '').trim(),
+        selected: true
+      })).filter(r => r.name) || [];
+
+      this.selectedLetter = {
+        ...letter,
+        recipients: formattedRecipients
+      };
+      this.showModal = true;
+    },
+
+    async updateLetter(letterData) {
+      try {
+        if (!letterData.id) {
+          throw new Error('Letter ID is required for update');
+        }
+
+        // Ensure proper recipient formatting and validation
+        const recipients = [];
+        if (Array.isArray(letterData.recipients)) {
+          letterData.recipients.forEach(recipient => {
+            const name = (recipient.name || recipient.text || '').trim();
+            if (name) {
+              recipients.push({
+                name: name,
+                position: (recipient.position || '').trim()
+              });
+            }
+          });
+        }
+
+        if (recipients.length === 0) {
+          throw new Error('At least one recipient with a name is required');
+        }
+
+        const formattedData = {
+          id: letterData.id,
+          title: letterData.title?.trim(),
+          subject: letterData.subject?.trim(),
+          type: letterData.type,
+          date: this.formatDateForInput(letterData.date || new Date()),
+          recipients: recipients,
+          content: letterData.content?.trim(),
+          sender_name: letterData.sender_name?.trim(),
+          sender_position: letterData.sender_position?.trim()
+        };
+
+        console.log('Updating with formatted data:', formattedData);
+        const response = await apiClient.put(`/letters/${letterData.id}`, formattedData);
+
+        if (response.data?.success) {
+          await this.fetchLetters();
+          this.showModal = false;
+          return response.data;
+        }
+
+        throw new Error(response.data?.message || 'Update failed');
+      } catch (error) {
+        console.error('Error updating letter:', error);
+        throw error;
+      }
+    },
+
+    // Keep only one fetchLetters
+    async fetchLetters() {
+      try {
+        const response = await apiClient.get('/letters', {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.data?.success && Array.isArray(response.data.data)) {
+          this.letters = response.data.data.map(letter => ({
+            ...letter,
+            date: letter.date || new Date().toISOString().split('T')[0],
+            type: letter.type || 'Unknown Type',
+            recipients: Array.isArray(letter.recipients) ? letter.recipients : []
+          }));
+        } else {
+          this.letters = [];
+        }
+      } catch (error) {
+        console.error('Letters fetch error:', error);
+        this.letters = [];
+        if (error.response?.data?.error?.includes('Table')) {
+          alert('Database tables are not set up. Please contact your system administrator.');
+        } else {
+          alert('Failed to fetch letters. Please try again later.');
+        }
+      }
+    },
+
+    // Keep only one deleteLetter
+    confirmDelete(id) {
+      this.confirmDeleteId = id;
+      this.showDeleteConfirmModal = true;
+    },
+
+    async deleteLetter() {
+      try {
+        if (!this.confirmDeleteId) return;
+        
+        const response = await apiClient.delete(`/letters/${this.confirmDeleteId}`);
+        if (response.data.success) {
+          this.showDeleteConfirmModal = false;
+          this.showDeleteSuccess = true;
+          await this.fetchLetters();
+          
+          setTimeout(() => {
+            this.showDeleteSuccess = false;
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert(error.response?.data?.message || 'Failed to delete letter');
+      } finally {
+        this.confirmDeleteId = null;
+      }
+    },
+
+    async fetchRecipients() {
+      try {
+        const response = await apiClient.get('/recipients');
+        console.log('Recipients response:', response.data); // Debug log
+
+        if (response.data?.success && Array.isArray(response.data.data)) {
+          this.recipients = response.data.data.map(recipient => ({
+            id: recipient.id,
+            name: recipient.name || '',
+            position: recipient.position || '',
+            selected: false
+          }));
+          console.log('Processed recipients:', this.recipients); // Debug log
+        } else {
+          console.warn('Invalid recipients data structure:', response.data);
+          this.recipients = [];
+        }
+      } catch (error) {
+        console.error('Error fetching recipients:', error);
+        console.log('Error response:', error.response); // Debug log
+        this.recipients = [];
+        if (error.response?.status === 404) {
+          alert('Recipients endpoint not found. Please check your API configuration.');
+        } else if (error.response?.data?.error?.includes('Table')) {
+          alert('Recipients table is not set up. Please contact your system administrator.');
+        } else {
+          alert('Failed to fetch recipients. Please check the console for details.');
+        }
+      }
+    },
+    // Add pagination methods
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+      }
+    },
+
+    goToPage(page) {
+      if (page >= 1 && page <= this.totalPages) {
+        this.currentPage = page;
+      }
+    },
+
+    // Add edit modal method
+    openEditModal(letter) {
+      // Create a deep copy of the letter and ensure recipients are properly formatted
+      this.selectedLetter = {
+        ...letter,
+        recipients: letter.recipients?.map(recipient => ({
+          name: recipient.name || '',
+          position: recipient.position || '',
+          selected: true
+        })) || []
+      };
+      console.log('Opening edit modal with data:', this.selectedLetter); // Debug log
       this.showModal = true;
     },
 

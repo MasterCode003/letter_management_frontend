@@ -111,7 +111,7 @@
                       >
                         <option value="">Select Recipient</option>
                         <option 
-                          v-for="r in filteredRecipientsList" 
+                          v-for="r in recipientsList" 
                           :key="r.id" 
                           :value="r.id"
                         >
@@ -306,13 +306,7 @@ export default {
   components: {
     QuillEditor
   },
-  emits: [
-    'close',
-    'save',
-    'save-letter',
-    'update-letter',
-    'refresh-letters'
-  ],
+  emits: ['close', 'save', 'save-letter', 'update-letter', 'refresh-letters'],
   props: {
     letter: {
       type: Object,
@@ -339,16 +333,40 @@ export default {
       isSubmitting: false
     }
   },
+  computed: {
+    filteredRecipientsList() {
+      // Get all currently selected recipient IDs
+      const selectedIds = this.letterForm.recipients
+        .filter(r => r.id)
+        .map(r => r.id);
+      
+      // Filter out recipients that are already selected
+      return this.recipientsList.filter(recipient => 
+        !selectedIds.includes(recipient.id)
+      );
+    }
+  },
   created() {
     if (this.letter && Object.keys(this.letter).length > 0) {
       this.editMode = true;
-      // Properly format the recipients data
       const formattedRecipients = Array.isArray(this.letter.recipients) 
-        ? this.letter.recipients.map(r => ({
-            id: r.id || r,
-            name: r.name || '',
-            position: r.position || ''
-          }))
+        ? this.letter.recipients.map(r => {
+            // Handle both object and ID formats
+            if (typeof r === 'object') {
+              return {
+                id: r.id || '',
+                name: r.name || '',
+                position: r.position || ''
+              };
+            } else {
+              // If it's just an ID, we'll populate name/position after fetching recipients
+              return {
+                id: r,
+                name: '',
+                position: ''
+              };
+            }
+          })
         : [{
             id: this.letter.recipients?.id || this.letter.recipients || '',
             name: this.letter.recipients?.name || '',
@@ -364,6 +382,12 @@ export default {
     this.fetchRecipients();
   },
   methods: {
+    formatDateForInput(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    },
+
     closeModal() {
       this.$emit('close');
     },
@@ -374,77 +398,28 @@ export default {
         position: '' 
       });
     },
-
     removeRecipient(index) {
       if (this.letterForm.recipients.length > 1) {
         this.letterForm.recipients.splice(index, 1);
       }
     },
-
-    // Update the fetchRecipients method
     async fetchRecipients() {
-      let retries = 3;
-      const retryDelay = 2000; // 2 seconds between retries
-      
-      while (retries > 0) {
-        try {
-          const response = await apiClient.get('/recipients/', {
-            timeout: 10000, // 10 seconds timeout
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            }
-          });
-      
-          if (response.data && Array.isArray(response.data.data)) {
-            this.recipientsList = response.data.data;
-            return; // Success, exit the retry loop
-          } else if (Array.isArray(response.data)) {
-            this.recipientsList = response.data;
-            return; // Success with direct array
-          }
-      
-          throw new Error('Invalid response format');
-      
-        } catch (error) {
-          retries--;
-          console.error(`Recipient fetch attempt failed. Retries remaining: ${retries}`, error);
-      
-          if (retries === 0) {
-            this.recipientsList = [];
-            if (error.code === 'ERR_NETWORK') {
-              alert('Network connection error. Please check your internet connection and try again.');
-            } else if (error.response?.status === 404) {
-              alert('Recipients endpoint not found. Please check your API configuration.');
-            } else {
-              alert('Unable to fetch recipients. Please try again later.');
-            }
-            return;
-          }
-      
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          console.log(`Retrying recipients fetch... (${retries} attempts remaining)`);
-        }
-      }
-    },
-
-    computed: {
-      filteredRecipientsList() {
-        const selectedRecipients = this.letterForm.recipients
-          .filter(r => r.id && r.name && r.position);
+      try {
+        const response = await apiClient.get('/recipients/');
+        console.log('Recipients response:', response.data);
         
-        return this.recipientsList.filter(recipient => 
-          !selectedRecipients.some(selected => 
-            selected.name === recipient.name && 
-            selected.position === recipient.position
-          )
-        );
+        if (response.data && Array.isArray(response.data.data)) {
+          this.recipientsList = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          this.recipientsList = response.data;
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (error) {
+        console.error('Error fetching recipients:', error);
+        alert('Unable to fetch recipients. Please try again later.');
       }
     },
-
-    // Update the updateRecipient method
     updateRecipient(index, recipientId) {
       if (!recipientId || recipientId === '') {
         this.letterForm.recipients[index] = { id: '', name: '', position: '' };
@@ -457,11 +432,9 @@ export default {
       
       if (!selectedRecipient) return;
     
-      // Check for duplicates by name and position
+      // Check for duplicates using ID instead of name and position
       const isDuplicate = this.letterForm.recipients.some((r, i) => 
-        i !== index && 
-        r.name === selectedRecipient.name && 
-        r.position === selectedRecipient.position
+        i !== index && r.id === selectedRecipient.id
       );
       
       if (isDuplicate) {
@@ -472,12 +445,97 @@ export default {
     
       this.letterForm.recipients[index] = {
         id: selectedRecipient.id,
-        name: selectedRecipient.name || '',
-        position: selectedRecipient.position || ''
+        name: selectedRecipient.name,
+        position: selectedRecipient.position
       };
+    },  // Add comma here
+
+    handleSubmit() {
+      // Reset errors
+      this.errors = {};
+      
+      // Validate recipients
+      const validRecipients = this.letterForm.recipients.filter(r => r.id && r.id !== '');
+      if (validRecipients.length === 0) {
+        this.errors.recipients = 'Please select at least one recipient';
+        return;
+      }
+      
+      // Validate recipient names
+      for (const recipient of validRecipients) {
+        const foundRecipient = this.recipientsList.find(r => r.id === parseInt(recipient.id));
+        if (!foundRecipient || !foundRecipient.name) {
+          this.errors.recipients = 'All recipients must have a name';
+          return;
+        }
+      }
+      
+      // Show confirmation modal
+      this.showConfirmModal = true;
+    },
+
+    async confirmSubmit() {
+      try {
+        this.isSubmitting = true;
+        
+        // Format recipients with required name field
+        const recipients = this.letterForm.recipients
+          .filter(r => r.id && r.id !== '')
+          .map(r => {
+            const recipient = this.recipientsList.find(rec => rec.id === parseInt(r.id));
+            if (!recipient || !recipient.name) {
+              throw new Error('Recipient name is required');
+            }
+            return {
+              name: recipient.name,
+              position: recipient.position || ''
+            };
+          });
+
+        if (recipients.length === 0) {
+          throw new Error('At least one recipient is required');
+        }
+
+        const formData = {
+          ...this.letterForm,
+          recipients: recipients
+        };
+
+        let response;
+        if (this.editMode) {
+          response = await apiClient.put(`/letters/${this.letter.id}/`, formData);
+          this.$emit('update-letter', response.data);
+        } else {
+          response = await apiClient.post('/letters/', formData);
+          this.$emit('save-letter', response.data);
+        }
+
+        this.showConfirmModal = false;
+        this.showSuccess = true;
+        this.$emit('refresh-letters');
+        
+        setTimeout(() => {
+          this.showSuccess = false;
+          this.closeModal();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Error submitting letter:', error);
+        if (error.response?.data) {
+          this.errors = error.response.data;
+        } else {
+          alert('An error occurred while saving the letter. Please try again.');
+        }
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+
+    handleBack() {
+      this.closeModal();
     }
-  } // Add closing brace for methods
-} // Add closing brace for export default
+  } // Close methods
+}; // Close export default
 </script>
 
 <style>
