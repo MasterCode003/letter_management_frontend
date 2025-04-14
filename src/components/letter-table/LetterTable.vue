@@ -12,6 +12,7 @@
       }"
       @update:filters="updateFilters"
       @new-letter="handleNewLetterClick"
+      class="mb-6"
     />
 
     <!-- Table -->
@@ -596,18 +597,18 @@ export default {
 
     async previewPDF(letter) {
       try {
-        const response = await apiClient.get(`/letters/${letter.id}/preview`, {
-          responseType: 'blob'
+        console.log('Requesting preview for letter:', letter.id);
+        
+        await apiClient.get(`/letters/${letter.id}/preview`, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'text/html, application/pdf',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         });
-        
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        
-        // Open PDF in new window
-        window.open(url, '_blank');
       } catch (error) {
-        console.error('Error previewing PDF:', error);
-        alert('Failed to generate PDF preview');
+        console.error('Preview Error:', error);
+        alert('Failed to generate preview. Please try again.');
       }
     },
 

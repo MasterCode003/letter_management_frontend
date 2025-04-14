@@ -110,9 +110,7 @@ import RecipientActions from './RecipientActions.vue'
 import RecipientForm from './RecipientForm.vue'
 import axios from 'axios'
 import { PlusIcon } from '@heroicons/vue/24/outline'
-
-// Remove unused imports
-// import apiClient from '@/utils/apiClient'
+import apiClient from '@/utils/apiClient'
 
 const recipients = ref([])
 const showAddModal = ref(false)
@@ -154,8 +152,14 @@ const displayedPages = computed(() => {
 
 const fetchRecipients = async () => {
   try {
-    const response = await axios.get('http://192.168.5.26:8000/api/recipients')
-    console.log('API Response:', response.data)
+    const response = await apiClient.get('/recipients', {
+      // Add specific config for this request
+      timeout: 10000,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
     
     if (response.data && response.data.data) {
       recipients.value = response.data.data
@@ -168,24 +172,24 @@ const fetchRecipients = async () => {
   } catch (error) {
     console.error('Error fetching recipients:', error)
     recipients.value = []
+    
+    let errorMessage = 'Failed to fetch recipients. '
+    
     if (error.code === 'ERR_NETWORK') {
-      alert('Cannot connect to the server. Please check your network connection.')
+      errorMessage += 'Please check if the server is running and your network connection is stable.'
     } else if (error.code === 'ECONNABORTED') {
-      alert('Request timed out. Server is taking too long to respond.')
-    } else {
-      alert('Failed to fetch recipients. Please try again later.')
+      errorMessage += 'Request timed out. Server is taking too long to respond.'
+    } else if (error.response) {
+      errorMessage += `Server returned error: ${error.response.status}`
     }
+    
+    alert(errorMessage)
   }
-}
-
-const handleEdit = (recipient) => {
-  selectedRecipient.value = recipient
-  showAddModal.value = true
 }
 
 const handleDelete = async (id) => {
   try {
-    await axios.delete(`http://192.168.5.26:8000/api/recipients/${id}`)
+    await apiClient.delete(`/recipients/${id}`)
     await fetchRecipients()
   } catch (error) {
     console.error('Error deleting recipient:', error)
@@ -206,6 +210,11 @@ const closeModal = () => {
 onMounted(() => {
   fetchRecipients()
 })
+
+const handleEdit = (recipient) => {
+  selectedRecipient.value = { ...recipient }
+  showAddModal.value = true
+}
 </script>
 
 <style scoped>

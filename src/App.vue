@@ -1,28 +1,33 @@
 <template>
   <div id="app">
-    <nav class="bg-white border-b shadow-sm p-4">
-      <div class="container mx-auto flex justify-between items-center">
-        <div class="flex space-x-4">
-          <router-link 
-            to="/letters" 
-            class="px-6 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition-all duration-200"
-            active-class="text-blue-600 border-blue-600"
-            :exact="true"
-          >
-            Letters
-          </router-link>
-          <router-link 
-            to="/recipients" 
-            class="px-6 py-2.5 text-sm font-medium text-gray-700 hover:text-green-600 border-b-2 border-transparent hover:border-green-600 transition-all duration-200"
-            active-class="text-green-600 border-green-600"
-          >
-            Recipients
-          </router-link>
+    <nav class="bg-white border-b shadow-sm">
+      <div class="container mx-auto">
+        <div class="flex items-center justify-between px-4">
+          <div class="flex space-x-8">
+            <router-link 
+              to="/letters" 
+              class="px-6 py-5 text-lg font-semibold text-gray-800 hover:text-blue-700 border-b-2 border-transparent hover:border-blue-700 transition-all duration-200 focus:outline-none"
+              :class="{ 'text-blue-700 border-blue-700 bg-blue-50/30': $route.path === '/letters' }"
+              :exact="true"
+            >
+              Letters Management
+            </router-link>
+            <router-link 
+              to="/recipients" 
+              class="px-6 py-5 text-lg font-semibold text-gray-800 hover:text-blue-700 border-b-2 border-transparent hover:border-blue-700 transition-all duration-200 focus:outline-none"
+              :class="{ 'text-blue-700 border-blue-700 bg-blue-50/30': $route.path === '/recipients' }"
+            >
+              Recipients Management
+            </router-link>
+          </div>
+          <div class="flex items-center space-x-4">
+            <!-- Add your logo or additional navigation items here -->
+          </div>
         </div>
       </div>
     </nav>
 
-    <div class="container mx-auto p-6">
+    <div class="container mx-auto p-8">
       <router-view></router-view>
     </div>
   </div>

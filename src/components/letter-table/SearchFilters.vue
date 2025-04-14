@@ -1,75 +1,76 @@
 <template>
-  <div>
-    <!-- New Button -->
-    <div class="flex justify-end mb-4">
-      <button 
-        @click="$emit('new-letter')"
-        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        New
-      </button>
-    </div>
-
-    <!-- Search Filters -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <div class="flex items-center gap-4">
-        <!-- Title Search -->
+  <div class="bg-white p-4 rounded-lg shadow mb-6">
+    <div class="flex items-center gap-4">
+      <!-- Title Search -->
+      <div class="flex-1">
         <input
-          :value="filters.searchQuery"
-          @input="updateFilter('searchQuery', $event.target.value)"
           type="text"
+          v-model="localFilters.searchQuery"
+          @input="updateFilters"
+          class="w-full border rounded-md px-3 py-2"
           placeholder="Search by title..."
-          class="flex-1 px-4 py-2 border rounded-md min-w-[120px]"
         />
+      </div>
 
-        <!-- Subject Search -->
+      <!-- Date Range -->
+      <div class="flex items-center gap-2">
         <input
-          :value="filters.searchSubject"
-          @input="updateFilter('searchSubject', $event.target.value)"
-          type="text"
-          placeholder="Search by subject..."
-          class="flex-1 px-4 py-2 border rounded-md min-w-[120px]"
+          type="date"
+          v-model="localFilters.dateRange.start"
+          @change="updateFilters"
+          class="border rounded-md px-3 py-2 w-36"
         />
-
-        <!-- Recipient Search -->
+        <span>-</span>
         <input
-          :value="filters.searchRecipient"
-          @input="updateFilter('searchRecipient', $event.target.value)"
-          type="text"
-          placeholder="Search by recipient..."
-          class="flex-1 px-4 py-2 border rounded-md min-w-[120px]"
+          type="date"
+          v-model="localFilters.dateRange.end"
+          @change="updateFilters"
+          class="border rounded-md px-3 py-2 w-36"
         />
+      </div>
 
-        <!-- Type Filter -->
+      <!-- Type Filter -->
+      <div class="w-40">
         <select
-          :value="filters.selectedType"
-          @change="updateFilter('selectedType', $event.target.value)"
-          class="w-[150px] px-4 py-2 border rounded-md"
+          v-model="localFilters.selectedType"
+          @change="updateFilters"
+          class="w-full border rounded-md px-3 py-2"
         >
           <option value="">All Types</option>
-          <option value="Memo">Memo</option>
           <option value="Business Letter">Business Letter</option>
+          <option value="Memo">Memo</option>
         </select>
-
-        <!-- Date Range Filter -->
-        <div class="flex gap-2">
-          <input
-            type="date"
-            :value="filters.dateRange.start"
-            @input="updateDateRange('start', $event.target.value)"
-            class="w-[140px] px-4 py-2 border rounded-md"
-          />
-          <input
-            type="date"
-            :value="filters.dateRange.end"
-            @input="updateDateRange('end', $event.target.value)"
-            class="w-[140px] px-4 py-2 border rounded-md"
-          />
-        </div>
       </div>
+
+      <!-- Subject Search -->
+      <div class="flex-1">
+        <input
+          type="text"
+          v-model="localFilters.searchSubject"
+          @input="updateFilters"
+          class="w-full border rounded-md px-3 py-2"
+          placeholder="Search by subject..."
+        />
+      </div>
+
+      <!-- Recipient Search -->
+      <div class="flex-1">
+        <input
+          type="text"
+          v-model="localFilters.searchRecipient"
+          @input="updateFilters"
+          class="w-full border rounded-md px-3 py-2"
+          placeholder="Search by recipient..."
+        />
+      </div>
+
+      <!-- New Letter Button -->
+      <button
+        @click="$emit('new-letter')"
+        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex-shrink-0"
+      >
+        New Letter
+      </button>
     </div>
   </div>
 </template>
@@ -83,18 +84,40 @@ export default {
       required: true
     }
   },
-  methods: {
-    updateFilter(key, value) {
-      this.$emit('update:filters', { ...this.filters, [key]: value });
-    },
-    updateDateRange(key, value) {
-      this.$emit('update:filters', {
-        ...this.filters,
+  data() {
+    return {
+      localFilters: {
+        searchQuery: '',
+        searchSubject: '',
+        searchRecipient: '',
+        selectedType: '',
         dateRange: {
-          ...this.filters.dateRange,
-          [key]: value
+          start: '',
+          end: ''
         }
-      });
+      }
+    }
+  },
+  watch: {
+    filters: {
+      immediate: true,
+      handler(newFilters) {
+        this.localFilters = {
+          searchQuery: newFilters.searchQuery || '',
+          searchSubject: newFilters.searchSubject || '',
+          searchRecipient: newFilters.searchRecipient || '',
+          selectedType: newFilters.selectedType || '',
+          dateRange: {
+            start: newFilters.dateRange?.start || '',
+            end: newFilters.dateRange?.end || ''
+          }
+        }
+      }
+    }
+  },
+  methods: {
+    updateFilters() {
+      this.$emit('update:filters', this.localFilters)
     }
   }
 }

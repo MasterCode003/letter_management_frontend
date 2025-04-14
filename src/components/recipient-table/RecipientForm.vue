@@ -73,7 +73,7 @@
                 </h3>
                 <div class="mt-2">
                   <p class="text-sm text-gray-500">
-                    New recipient has been successfully added.
+                    {{ successMessage }}
                   </p>
                 </div>
               </div>
@@ -95,30 +95,40 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'  // Add computed import
 import debounce from 'lodash/debounce'
-import axios from 'axios'
+import apiClient from '@/utils/apiClient'
 
 const props = defineProps({
   recipient: {
     type: Object,
-    default: null
+    default: () => null  // Change to function
   }
 })
 
 const emit = defineEmits(['close', 'save'])
 
-// Initialize form with default values
+// Initialize form with default values and include id for updates
 const form = ref({
+  id: null,
   name: '',
   position: ''
 })
 
-// Watch for changes in the recipient prop
+// Update watch to handle id and null cases
 watch(() => props.recipient, (newRecipient) => {
-  form.value = {
-    name: newRecipient?.name || '',
-    position: newRecipient?.position || ''
+  if (newRecipient) {
+    form.value = {
+      id: newRecipient.id,
+      name: newRecipient.name || '',
+      position: newRecipient.position || ''
+    }
+  } else {
+    form.value = {
+      id: null,
+      name: '',
+      position: ''
+    }
   }
 }, { immediate: true })
 
@@ -126,32 +136,44 @@ const showSuccessModal = ref(false)
 
 const handleSubmit = debounce(async () => {
   try {
-    const response = await axios.post('http://192.168.5.68:8000/api/recipients', form.value, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      timeout: 5000
-    })
+    let response;
+    
+    if (form.value.id) {
+      // Update existing recipient
+      response = await apiClient.put(`/recipients/${form.value.id}`, {
+        name: form.value.name,
+        position: form.value.position
+      })
+    } else {
+      // Create new recipient
+      response = await apiClient.post('/recipients', {
+        name: form.value.name,
+        position: form.value.position
+      })
+    }
     
     emit('save', response.data)
     showSuccessModal.value = true
   } catch (error) {
     console.error('Save failed:', error)
-    let errorMessage = 'Error saving recipient. '
-    if (error.code === 'ERR_NETWORK') {
-      errorMessage += 'Cannot connect to the server. Please check your network connection.'
-    } else if (error.code === 'ECONNABORTED') {
-      errorMessage += 'Request timed out. Server is taking too long to respond.'
-    } else if (error.response) {
-      errorMessage += error.response.data.message || 'Please try again.'
+    let errorMessage = props.recipient ? 'Error updating recipient. ' : 'Error creating recipient. '
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage += 'Request timed out. Please try again.'
+    } else if (error.response?.status === 422) {
+      errorMessage += 'Please check your input data.'
+    } else if (error.response?.status === 500) {
+      errorMessage += 'Server error. Please try again later.'
+    } else {
+      errorMessage += 'Please check your network connection and try again.'
     }
+    
     alert(errorMessage)
   }
-}, 1000)
+}, 500)
 
-const handleSuccessClose = () => {
-  showSuccessModal.value = false
-  emit('close')
-}
+// Success message computed property
+const successMessage = computed(() => 
+  form.value.id ? 'Recipient has been successfully updated.' : 'New recipient has been successfully added.'
+)
 </script>
