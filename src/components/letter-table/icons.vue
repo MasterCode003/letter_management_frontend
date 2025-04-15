@@ -1,34 +1,11 @@
 <template>
   <div>
-    <component :is="EditIcon" v-if="type === 'edit'" />
-    <component :is="PreviewDownloadIcon" v-if="type === 'preview-download'" />
-    <component :is="DeleteIcon" v-if="type === 'delete'" />
+    <i :class="iconClass"></i>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, h } from 'vue'
-
-export const EditIcon = defineComponent({
-  name: 'EditIcon',
-  render() {
-    return h('span', { class: 'edit-icon' }, '✏️')
-  }
-})
-
-export const PreviewDownloadIcon = defineComponent({
-  name: 'PreviewDownloadIcon',
-  render() {
-    return h('span', { class: 'preview-download-icon' }, '📥')
-  }
-})
-
-export const DeleteIcon = defineComponent({
-  name: 'DeleteIcon',
-  render() {
-    return h('span', { class: 'delete-icon' }, '🗑️')
-  }
-})
+import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'IconComponent',
@@ -37,6 +14,20 @@ export default defineComponent({
       type: String,
       required: true,
       validator: (value: string) => ['edit', 'preview-download', 'delete'].includes(value)
+    }
+  },
+  computed: {
+    iconClass() {
+      switch (this.type) {
+        case 'edit':
+          return 'fas fa-edit text-lg'
+        case 'preview-download':
+          return 'fas fa-eye text-lg'
+        case 'delete':
+          return 'fas fa-trash text-lg'
+        default:
+          return ''
+      }
     }
   }
 })

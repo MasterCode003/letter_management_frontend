@@ -457,24 +457,6 @@ export default {
     handleSubmit() {
       // Reset errors
       this.errors = {};
-      
-      // Validate recipients
-      const validRecipients = this.letterForm.recipients.filter(r => r.id && r.id !== '');
-      if (validRecipients.length === 0) {
-        this.errors.recipients = 'Please select at least one recipient';
-        return;
-      }
-      
-      // Validate recipient names
-      for (const recipient of validRecipients) {
-        const foundRecipient = this.recipientsList.find(r => r.id === parseInt(recipient.id));
-        if (!foundRecipient || !foundRecipient.name) {
-          this.errors.recipients = 'All recipients must have a name';
-          return;
-        }
-      }
-      
-      // Show confirmation modal
       this.showConfirmModal = true;
     },
 
@@ -482,42 +464,26 @@ export default {
       try {
         this.isSubmitting = true;
         
-        // Format recipients with required name field
-        const recipients = this.letterForm.recipients
-          .filter(r => r.id && r.id !== '')
-          .map(r => {
-            const recipient = this.recipientsList.find(rec => rec.id === parseInt(r.id));
-            if (!recipient || !recipient.name) {
-              throw new Error('Recipient name is required');
-            }
-            return {
-              name: recipient.name,
-              position: recipient.position || ''
-            };
-          });
-
-        if (recipients.length === 0) {
-          throw new Error('At least one recipient is required');
-        }
-
         const formData = {
           ...this.letterForm,
-          recipients: recipients
+          // Send recipient IDs directly
+          recipients: this.letterForm.recipients.map(r => r.id)
         };
 
         let response;
         if (this.editMode) {
           response = await apiClient.put(`/letters/${this.letter.id}/`, formData);
-          this.$emit('update-letter', response.data);
         } else {
+          // Add trailing slash for Django compatibility
           response = await apiClient.post('/letters/', formData);
-          this.$emit('save-letter', response.data);
         }
 
+        // Handle successful response
         this.showConfirmModal = false;
         this.showSuccess = true;
         this.$emit('refresh-letters');
-        
+
+        // Only close modal after successful API response
         setTimeout(() => {
           this.showSuccess = false;
           this.closeModal();
@@ -525,7 +491,10 @@ export default {
 
       } catch (error) {
         console.error('Error submitting letter:', error);
-        if (error.response?.data) {
+        // Handle Django-style validation errors
+        if (error.response?.data?.errors) {
+          this.errors = error.response.data.errors;
+        } else if (error.response?.data) {
           this.errors = error.response.data;
         } else {
           alert('An error occurred while saving the letter. Please try again.');
@@ -534,12 +503,8 @@ export default {
         this.isSubmitting = false;
       }
     },
-
-    handleBack() {
-      this.closeModal();
-    }
-  } // Close methods
-}; // Close export default
+  }
+}
 </script>
 
 <style>

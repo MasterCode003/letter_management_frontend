@@ -1,14 +1,10 @@
 <template>
-  <button
+  <button 
     :class="[
-      'px-2 py-1 rounded-md text-sm font-medium',
-      variant === 'edit' ? 'text-blue-600 hover:bg-blue-50' : '',
-      variant === 'preview' ? 'text-gray-600 hover:bg-gray-50' : '',
-      variant === 'download' ? 'text-green-600 hover:bg-green-50' : '',
-      variant === 'export' ? 'text-indigo-600 hover:bg-indigo-50' : '',
-      variant === 'delete' ? 'text-red-600 hover:bg-red-50' : ''
+      'inline-flex items-center justify-center rounded',
+      'w-8 h-8 mx-1',
+      variantClasses[variant]
     ]"
-    @click="$emit('click')"
   >
     <slot></slot>
   </button>
@@ -20,11 +16,22 @@ export default {
   props: {
     variant: {
       type: String,
-      default: 'edit',
-      validator: function(value) {
-        return ['edit', 'preview', 'download', 'export', 'delete'].includes(value)
+      default: 'default'
+    }
+  },
+  computed: {
+    variantClasses() {
+      return {
+        edit: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
+        preview: 'bg-purple-50 text-purple-600 hover:bg-purple-100',
+        delete: 'bg-red-50 text-red-600 hover:bg-red-100',
+        default: 'bg-gray-50 text-gray-600 hover:bg-gray-100'
       }
     }
   }
 }
 </script>
+
+<style scoped>
+/* Remove fixed width/height from CSS since we're using Tailwind classes */
+</style>

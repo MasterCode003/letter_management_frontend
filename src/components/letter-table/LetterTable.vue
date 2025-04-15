@@ -1,4 +1,3 @@
-
 <template>
   <div class="p-6">
     <!-- Add New Letter button above SearchFilters -->
@@ -44,8 +43,7 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="letter in paginatedLetters" :key="letter.id">
               <td class="px-6 py-4 whitespace-nowrap">
-                <template>
-                  <!-- In the table where LetterActions is used -->
+                <div class="flex items-center space-x-2">
                   <LetterActions 
                     :letter="letter"
                     :is-loading="isPreviewLoading"
@@ -54,7 +52,7 @@
                     @convert-pdf-to-word="convertPDFToWord"
                     @delete="confirmDelete"
                   />
-                </template>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
               <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
@@ -172,6 +170,15 @@
     >
       Letter deleted successfully!
     </div>
+
+    <LetterEditModal
+      v-if="showEditModal"
+      :show="showEditModal"
+      :letter="selectedLetter"
+      :recipients="availableRecipients"
+      @update:show="showEditModal = $event"
+      @save="handleLetterSaved"
+    />
   </div>
 </template>
 
@@ -202,6 +209,7 @@ import DeleteConfirmationModal from './DeleteConfirmationModal.vue';
 import useLetterUpdate from './composables/useLetterUpdate';
 import useLetterDelete from './composables/useLetterDelete';
 import useLetterPreview from './composables/useLetterPreview';
+import LetterEditModal from './LetterEditModal.vue';
 
 export default {
   name: 'LetterTable',
@@ -210,7 +218,8 @@ export default {
     LetterActions,
     SearchFilters,
     TablePagination,
-    DeleteConfirmationModal
+    DeleteConfirmationModal,
+    LetterEditModal
   },
   emits: ['refresh-letters'],
   data() {
@@ -359,86 +368,44 @@ export default {
 
     async handleLetterSaved(letterData) {
       try {
-        if (!letterData) {
-          throw new Error('Letter data is undefined');
-        }
-
-        // Remove recipient validation from here since it's handled in LetterModal
+        // Add loading state
+        this.isFetching = true;
+        
         if (letterData.id) {
           await this.updateLetter(letterData);
         } else {
           await this.addLetter(letterData);
         }
         
-        this.showLetterForm = false;
-        this.showEditModal = false;
+        // Force refresh from server
         await this.fetchLetters();
-        this.$router.push('/letters');
+        
+        this.showModal = false;
+        this.showEditModal = false;
       } catch (error) {
         console.error('Error saving letter:', error);
         alert(error.message || 'Failed to save letter. Please check all required fields.');
+      } finally {
+        this.isFetching = false;
       }
     },
 
+    // In addLetter method - Remove the recipient validation
     async addLetter(letterData) {
       try {
-        // Add debug logs
-        console.log('Raw recipients data:', letterData.recipients);
-        console.log('Available recipients:', this.recipients);
-
-        const recipients = [];
-        const recipientsToProcess = Array.isArray(letterData.recipients) 
-          ? letterData.recipients 
-          : [letterData.recipients];
-          
-        for (const recipient of recipientsToProcess) {
-          // Handle both object and ID cases
-          if (typeof recipient === 'object') {
-            const name = (recipient.name || recipient.text || '').trim();
-            const position = (recipient.position || '').trim();
-            
-            // Handle case where recipient comes from v-select (contains both ID and text)
-            if (recipient.id && !name) {
-              const foundRecipient = this.recipients.find(r => r.id === recipient.id);
-              if (foundRecipient) {
-                recipients.push({
-                  name: foundRecipient.name.trim(),
-                  position: foundRecipient.position.trim()
-                });
-              }
-            } else if (name) {
-              recipients.push({ name, position });
-            }
-          } else if (typeof recipient === 'string' || typeof recipient === 'number') {
-            // Handle case where recipient is just an ID
-            const foundRecipient = this.recipients.find(r => r.id === recipient);
-            if (foundRecipient) {
-              recipients.push({
-                name: foundRecipient.name.trim(),
-                position: foundRecipient.position.trim()
-              });
-            }
-          }
-        }
-
-        console.log('Processed recipients:', recipients);
-        
-        if (recipients.length === 0) {
-          throw new Error('At least one recipient with a name is required');
-        }
-
         const formattedData = {
           title: letterData.title?.trim(),
           subject: letterData.subject?.trim(),
           type: letterData.type,
           date: letterData.date ? this.formatDateForInput(letterData.date) : this.formatDateForInput(new Date()),
-          recipients: recipients,
+          // Use IDs directly from form data
+          recipients: letterData.recipients,
           content: letterData.content?.trim(),
           sender_name: letterData.sender_name?.trim(),
           sender_position: letterData.sender_position?.trim()
         };
 
-        const response = await apiClient.post('/letters', formattedData);
+        const response = await apiClient.post('/letters/', formattedData);
         
         if (response?.data?.success) {
           await this.fetchLetters();
@@ -453,6 +420,7 @@ export default {
       }
     },
 
+    // In updateLetter method - Remove the recipient validation
     async updateLetter(letterData) {
       try {
         if (!letterData.id) {
@@ -638,6 +606,7 @@ export default {
       // Format all letter data for editing
       this.selectedLetter = {
         ...letter,
+        id: letter.id,
         title: letter.title || '',
         subject: letter.subject || '',
         type: letter.type || '',
@@ -646,19 +615,23 @@ export default {
         sender_name: letter.sender_name || '',
         sender_position: letter.sender_position || '',
         recipients: letter.recipients?.map(recipient => {
-          // Find matching recipient using multiple criteria
+          // Find the matching recipient from the available recipients
           const existingRecipient = this.recipients.find(r => 
-            (r.id && recipient.id && r.id === recipient.id) ||
-            (r.name.toLowerCase() === recipient.name?.toLowerCase() && 
-             r.position?.toLowerCase() === recipient.position?.toLowerCase())
+            r.id === recipient.id || 
+            (r.name === recipient.name && r.position === recipient.position)
           );
           
-          return existingRecipient ? existingRecipient.id : null;
-        }).filter(Boolean) || []
+          return existingRecipient ? existingRecipient.id : {
+            id: recipient.id,
+            name: recipient.name,
+            position: recipient.position
+          };
+        }) || []
       };
       
-      console.log('Processed recipients for edit:', this.selectedLetter.recipients);
-      this.showModal = true;
+      console.log('Opening edit modal with data:', this.selectedLetter);
+      this.showEditModal = true;
+      this.showModal = false;
     },
 
     async updateLetter(letterData) {
@@ -876,7 +849,7 @@ export default {
     async convertPDFToWord(letter) {
       try {
         this.isPreviewLoading = true;
-        const response = await apiClient.get(`/letters/${letter.id}/convert-to-word/`, {  // Updated endpoint
+        const response = await apiClient.get(`/letters/${letter.id}/convert-to-word/`, {
           responseType: 'blob'
         });
     
@@ -896,14 +869,10 @@ export default {
         alert('Failed to convert document. Please try again later.');
       } finally {
         this.isPreviewLoading = false;
-        // Notify LetterActions to hide loading state
         this.$emit('conversion-complete');
       }
     }
-
-    // Remove this commented component call from script section
   }
 };
 </script>
-
 
