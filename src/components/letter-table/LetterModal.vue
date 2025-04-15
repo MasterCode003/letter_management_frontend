@@ -1,214 +1,218 @@
 <template>
-  <div class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
-    <div class="flex items-center justify-center min-h-screen p-4 backdrop-blur-sm">
-      <div class="relative bg-white rounded-lg shadow-xl w-[85%] h-[85vh] max-w-[1200px]">
-        <!-- Fixed header -->
-        <div class="absolute top-0 left-0 right-0 bg-white px-6 py-3 border-b z-10">
-          <div class="flex items-center justify-between">
-            <!-- Title on left -->
-            <h2 class="text-xl font-bold text-gray-900">{{ editMode ? 'Edit Letter' : 'Create New Letter' }}</h2>
-            
-            <!-- Input field centered - Modified to be editable -->
-            <div class="flex-1 flex justify-center mx-4">
-              <div class="flex flex-col w-[500px]">
-                <div class="relative">
-                  <input
-                    v-model="letterForm.title"
-                    :class="{'border-red-500': errors.title}"
-                    type="text"
-                    required
-                    placeholder="Enter letter title"
-                    class="w-full border-b-2 border-gray-300 focus:border-green-500 px-4 py-2 text-lg font-medium outline-none bg-transparent"
-                  />
-                  <span v-if="errors.title" class="absolute -bottom-6 left-0 text-sm text-red-500">{{ errors.title }}</span>
+  <!-- Single root element wrapping all content -->
+  <div>
+    <!-- Main Letter Modal -->
+    <div class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" style="backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
+      <div class="flex items-center justify-center min-h-screen p-4 backdrop-blur-sm">
+        <div class="relative bg-white rounded-lg shadow-xl w-[85%] h-[85vh] max-w-[1200px]">
+          <!-- Fixed header -->
+          <div class="absolute top-0 left-0 right-0 bg-white px-6 py-3 border-b z-10">
+            <div class="flex items-center justify-between">
+              <!-- Title on left -->
+              <h2 class="text-xl font-bold text-gray-900">{{ editMode ? 'Edit Letter' : 'Create New Letter' }}</h2>
+              
+              <!-- Input field centered - Modified to be editable -->
+              <div class="flex-1 flex justify-center mx-4">
+                <div class="flex flex-col w-[500px]">
+                  <div class="relative">
+                    <input
+                      v-model="letterForm.title"
+                      :class="{'border-red-500': errors.title}"
+                      type="text"
+                      required
+                      placeholder="Enter letter title"
+                      class="w-full border-b-2 border-gray-300 focus:border-green-500 px-4 py-2 text-lg font-medium outline-none bg-transparent"
+                    />
+                    <span v-if="errors.title" class="absolute -bottom-6 left-0 text-sm text-red-500">{{ errors.title }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Buttons on right -->
-            <!-- Update the header buttons section -->
-            <div class="flex items-center gap-3">
-              <button
-                type="button"
-                @click="handleBack"
-                class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back
-              </button>
-              <button
-                type="submit"
-                @click="handleSubmit"
-                class="px-4 py-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                {{ editMode ? 'Update' : 'Save' }}
-              </button>
+              
+              <!-- Buttons on right -->
+              <!-- Update the header buttons section -->
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  @click="handleBack"
+                  class="px-4 py-1.5 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  @click="handleSubmit"
+                  class="px-4 py-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {{ editMode ? 'Update' : 'Save' }}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-
-        <!-- Scrollable content -->
-        <div class="h-full overflow-y-auto pt-16 px-6 pb-6">
-          <div class="bg-white rounded-lg shadow p-6">
-            <!-- Inside the form element, reorder the sections -->
-            <!-- In your form element -->
-            <form @submit.prevent="handleSubmit" class="space-y-6">
-              <!-- Letter Type -->
-              <div class="flex items-center gap-4">
-                <label class="font-medium w-24 text-lg">Type:</label>
-                <div class="flex flex-col">
-                  <div class="relative">
-                    <select
-                      v-model="letterForm.type"
-                      :class="{'border-red-500': errors.type}"
-                      required
-                      class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                    >
-                      <option value="">Select Type</option>
-                      <option value="Memo">Memo</option>
-                      <option value="Business Letter">Business Letter</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span v-if="errors.type" class="text-sm text-red-500 mt-1">{{ errors.type }}</span>
-                </div>
-              </div>
-
-              <!-- Recipients Section -->
-              <div class="space-y-4">
+          
+          <!-- Scrollable content -->
+          <div class="h-full overflow-y-auto pt-16 px-6 pb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+              <!-- Inside the form element, reorder the sections -->
+              <!-- In your form element -->
+              <form @submit.prevent="handleSubmit" class="space-y-6">
+                <!-- Letter Type -->
                 <div class="flex items-center gap-4">
-                  <label class="font-medium w-24 text-lg">FOR:</label>
-                  <button
-                    type="button"
-                    @click="addRecipient"
-                    class="border rounded-md px-4 py-2 bg-gray-50 hover:bg-gray-100 text-base flex items-center gap-2"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Recipient
-                  </button>
-                </div>
-
-                <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
-                  <div class="flex-1">
-                    <div class="flex flex-col">
+                  <label class="font-medium w-24 text-lg">Type:</label>
+                  <div class="flex flex-col">
+                    <div class="relative">
                       <select
-                        v-model="recipient.id"
-                        :class="{'border-red-500': errors.recipients}"
-                        class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
-                        @change="updateRecipient(index, recipient.id)"
+                        v-model="letterForm.type"
+                        :class="{'border-red-500': errors.type}"
+                        required
+                        class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                       >
-                        <option value="">Select Recipient</option>
-                        <option 
-                          v-for="r in recipientsList" 
-                          :key="r.id" 
-                          :value="r.id"
-                        >
-                          {{ r.name }} - {{ r.position }}
-                        </option>
+                        <option value="">Select Type</option>
+                        <option value="Memo">Memo</option>
+                        <option value="Business Letter">Business Letter</option>
                       </select>
-                      <span v-if="errors.recipients && index === 0" class="text-sm text-red-500 mt-1">{{ errors.recipients }}</span>
+                      <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <span v-if="errors.type" class="text-sm text-red-500 mt-1">{{ errors.type }}</span>
+                  </div>
+                </div>
+                
+                <!-- Recipients Section -->
+                <div class="space-y-4">
+                  <div class="flex items-center gap-4">
+                    <label class="font-medium w-24 text-lg">FOR:</label>
+                    <button
+                      type="button"
+                      @click="addRecipient"
+                      class="border rounded-md px-4 py-2 bg-gray-50 hover:bg-gray-100 text-base flex items-center gap-2"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Recipient
+                    </button>
+                  </div>
+                
+                  <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                    <div class="flex-1">
+                      <div class="flex flex-col">
+                        <select
+                          v-model="recipient.id"
+                          :class="{'border-red-500': errors.recipients}"
+                          class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
+                          @change="updateRecipient(index, recipient.id)"
+                        >
+                          <option value="">Select Recipient</option>
+                          <option 
+                            v-for="r in recipientsList" 
+                            :key="r.id" 
+                            :value="r.id"
+                          >
+                            {{ r.name }} - {{ r.position }}
+                          </option>
+                        </select>
+                        <span v-if="errors.recipients && index === 0" class="text-sm text-red-500 mt-1">{{ errors.recipients }}</span>
+                      </div>
+                    </div>
+                    <button
+                      v-if="letterForm.recipients.length > 1"
+                      @click="removeRecipient(index)"
+                      type="button"
+                      class="text-red-600 hover:text-red-800"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Subject field -->
+                <div class="flex items-center gap-4">
+                  <label class="font-medium w-24 text-lg">Subject:</label>
+                  <div class="flex flex-col flex-1">
+                    <input
+                      v-model="letterForm.subject"
+                      :class="{'border-red-500': errors.subject}"
+                      type="text"
+                      required
+                      class="border rounded-md px-4 py-2"
+                    />
+                    <span v-if="errors.subject" class="text-sm text-red-500 mt-1">{{ errors.subject }}</span>
+                  </div>
+                </div>
+                
+                <!-- Date field -->
+                <div class="flex items-center gap-4">
+                  <label class="font-medium w-24 text-lg">Date:</label>
+                  <div class="flex flex-col">
+                    <input
+                      v-model="letterForm.date"
+                      :class="{'border-red-500': errors.date}"
+                      type="date"
+                      required
+                      class="w-[200px] border rounded-md px-4 py-2"
+                    />
+                    <span v-if="errors.date" class="text-sm text-red-500 mt-1">{{ errors.date }}</span>
+                  </div>
+                </div>
+                
+                <!-- Content - Moved up -->
+                <div class="flex items-start gap-4 mt-6">
+                  <label class="font-medium w-24 text-lg pt-2">Content:</label>
+                  <div class="flex-1">
+                    <QuillEditor
+                      v-model:content="letterForm.content"
+                      contentType="html"
+                      theme="snow"
+                      toolbar="full"
+                      class="h-[300px]"
+                      :class="{'border-red-500': errors.content}"
+                    />
+                    <span v-if="errors.content" class="text-sm text-red-500 mt-1">{{ errors.content }}</span>
+                  </div>
+                </div>
+                
+                <!-- Sender Information - Moved to bottom -->
+                <div class="mt-8 pt-6 border-t">
+                  <h3 class="font-medium text-lg mb-4">Sender's Information:</h3>
+                  <div class="grid grid-cols-2 gap-6">
+                    <div class="flex flex-col space-y-2">
+                      <label class="text-base font-medium">Name</label>
+                      <input
+                        type="text"
+                        v-model="letterForm.sender_name"
+                        :class="{'border-red-500': errors.sender_name}"
+                        placeholder="Enter sender's name"
+                        class="w-full border rounded-md px-4 py-2"
+                      />
+                      <span v-if="errors.sender_name" class="text-sm text-red-500">{{ errors.sender_name }}</span>
+                    </div>
+                    <div class="flex flex-col space-y-2">
+                      <label class="text-base font-medium">Position/Title</label>
+                      <input
+                        type="text"
+                        v-model="letterForm.sender_position"
+                        :class="{'border-red-500': errors.sender_position}"
+                        placeholder="Enter sender's position"
+                        class="w-full border rounded-md px-4 py-2"
+                      />
+                      <span v-if="errors.sender_position" class="text-sm text-red-500">{{ errors.sender_position }}</span>
                     </div>
                   </div>
-                  <button
-                    v-if="letterForm.recipients.length > 1"
-                    @click="removeRecipient(index)"
-                    type="button"
-                    class="text-red-600 hover:text-red-800"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
                 </div>
-              </div>
-
-              <!-- Subject field -->
-              <div class="flex items-center gap-4">
-                <label class="font-medium w-24 text-lg">Subject:</label>
-                <div class="flex flex-col flex-1">
-                  <input
-                    v-model="letterForm.subject"
-                    :class="{'border-red-500': errors.subject}"
-                    type="text"
-                    required
-                    class="border rounded-md px-4 py-2"
-                  />
-                  <span v-if="errors.subject" class="text-sm text-red-500 mt-1">{{ errors.subject }}</span>
-                </div>
-              </div>
-
-              <!-- Date field -->
-              <div class="flex items-center gap-4">
-                <label class="font-medium w-24 text-lg">Date:</label>
-                <div class="flex flex-col">
-                  <input
-                    v-model="letterForm.date"
-                    :class="{'border-red-500': errors.date}"
-                    type="date"
-                    required
-                    class="w-[200px] border rounded-md px-4 py-2"
-                  />
-                  <span v-if="errors.date" class="text-sm text-red-500 mt-1">{{ errors.date }}</span>
-                </div>
-              </div>
-
-              <!-- Content - Moved up -->
-              <div class="flex items-start gap-4 mt-6">
-                <label class="font-medium w-24 text-lg pt-2">Content:</label>
-                <div class="flex-1">
-                  <QuillEditor
-                    v-model:content="letterForm.content"
-                    contentType="html"
-                    theme="snow"
-                    toolbar="full"
-                    class="h-[300px]"
-                    :class="{'border-red-500': errors.content}"
-                  />
-                  <span v-if="errors.content" class="text-sm text-red-500 mt-1">{{ errors.content }}</span>
-                </div>
-              </div>
-
-              <!-- Sender Information - Moved to bottom -->
-              <div class="mt-8 pt-6 border-t">
-                <h3 class="font-medium text-lg mb-4">Sender's Information:</h3>
-                <div class="grid grid-cols-2 gap-6">
-                  <div class="flex flex-col space-y-2">
-                    <label class="text-base font-medium">Name</label>
-                    <input
-                      type="text"
-                      v-model="letterForm.sender_name"
-                      :class="{'border-red-500': errors.sender_name}"
-                      placeholder="Enter sender's name"
-                      class="w-full border rounded-md px-4 py-2"
-                    />
-                    <span v-if="errors.sender_name" class="text-sm text-red-500">{{ errors.sender_name }}</span>
-                  </div>
-                  <div class="flex flex-col space-y-2">
-                    <label class="text-base font-medium">Position/Title</label>
-                    <input
-                      type="text"
-                      v-model="letterForm.sender_position"
-                      :class="{'border-red-500': errors.sender_position}"
-                      placeholder="Enter sender's position"
-                      class="w-full border rounded-md px-4 py-2"
-                    />
-                    <span v-if="errors.sender_position" class="text-sm text-red-500">{{ errors.sender_position }}</span>
-                  </div>
-                </div>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -289,7 +293,7 @@
 import axios from 'axios';
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
-import { nextTick } from 'vue'
+import { nextTick } from 'vue'  // Add this import from the second script
 
 const apiClient = axios.create({
   baseURL: 'http://192.168.5.112:8000/api',

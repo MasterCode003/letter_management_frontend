@@ -3,21 +3,27 @@
     <nav class="bg-white border-b shadow-sm">
       <div class="container mx-auto">
         <div class="flex items-center justify-between px-4">
-          <div class="flex space-x-8">
+          <div class="flex space-x-4">
             <router-link 
               to="/letters" 
-              class="px-6 py-5 text-lg font-semibold text-gray-800 hover:text-blue-700 border-b-2 border-transparent hover:border-blue-700 transition-all duration-200 focus:outline-none"
-              :class="{ 'text-blue-700 border-blue-700 bg-blue-50/30': $route.path === '/letters' }"
-              :exact="true"
+              class="px-4 py-3 text-base font-semibold rounded-md transition-all duration-200 border-b-2"
+              :class="{ 
+                'text-blue-700 border-blue-700': $route.path === '/letters',
+                'text-gray-600 hover:text-blue-700 border-transparent': $route.path !== '/letters'
+              }"
+              exact
             >
-              Letters Management
+              Letters
             </router-link>
             <router-link 
               to="/recipients" 
-              class="px-6 py-5 text-lg font-semibold text-gray-800 hover:text-blue-700 border-b-2 border-transparent hover:border-blue-700 transition-all duration-200 focus:outline-none"
-              :class="{ 'text-blue-700 border-blue-700 bg-blue-50/30': $route.path === '/recipients' }"
+              class="px-4 py-3 text-base font-semibold rounded-md transition-all duration-200 border-b-2"
+              :class="{ 
+                'text-blue-700 border-blue-700': $route.path === '/recipients',
+                'text-gray-600 hover:text-blue-700 border-transparent': $route.path !== '/recipients'
+              }"
             >
-              Recipients Management
+              Recipients
             </router-link>
           </div>
           <div class="flex items-center space-x-4">

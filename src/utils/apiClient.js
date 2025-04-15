@@ -260,4 +260,76 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Add response interceptor to format recipient data
+apiClient.interceptors.response.use(
+  response => {
+    // For letters endpoint
+    if (response.config.url.includes('/letters')) {
+      // Handle array of letters
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        response.data.data = response.data.data.map(letter => ({
+          ...letter,
+          recipients: Array.isArray(letter.recipients) 
+            ? letter.recipients
+            : typeof letter.recipients === 'object' 
+              ? [letter.recipients]
+              : []
+        }));
+      }
+      // Handle single letter
+      else if (response.data?.data) {
+        const letter = response.data.data;
+        response.data.data = {
+          ...letter,
+          recipients: Array.isArray(letter.recipients) 
+            ? letter.recipients
+            : typeof letter.recipients === 'object' 
+              ? [letter.recipients]
+              : []
+        };
+      }
+    }
+    
+    // For recipients endpoint
+    if (response.config.url.includes('/recipients')) {
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        response.data.data = response.data.data.map(recipient => ({
+          id: recipient.id,
+          name: recipient.name || '',
+          position: recipient.position || ''
+        }));
+      }
+    }
+
+    console.log('Processed Response:', response.data);
+    return response;
+  },
+  error => Promise.reject(error)
+);
+
+// Add request interceptor for recipient endpoints
+apiClient.interceptors.request.use(
+  config => {
+    // Format recipient data for POST/PUT requests
+    if ((config.method === 'post' || config.method === 'put') && 
+        config.url.includes('/letters') && 
+        config.data) {
+      const data = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+      
+      if (data.recipients) {
+        data.recipients = Array.isArray(data.recipients) 
+          ? data.recipients.map(r => ({
+              name: r.name || '',
+              position: r.position || ''
+            }))
+          : [];
+      }
+      
+      config.data = JSON.stringify(data);
+    }
+    return config;
+  },
+  error => Promise.reject(error)
+);
+
 export default apiClient;

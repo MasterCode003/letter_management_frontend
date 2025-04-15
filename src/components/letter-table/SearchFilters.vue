@@ -60,7 +60,7 @@
           v-model="localFilters.searchRecipient"
           @input="updateFilters"
           class="w-full border rounded-md px-3 py-2"
-          placeholder="Search by recipient..."
+          placeholder="Search by recipient name or position..."
         />
       </div>
     </div>
@@ -108,8 +108,21 @@ export default {
     }
   },
   methods: {
+    parseRecipients(recipientsString) {
+      try {
+        return JSON.parse(recipientsString);
+      } catch (e) {
+        console.error('Error parsing recipients:', e);
+        return [];
+      }
+    },
     updateFilters() {
-      this.$emit('update:filters', this.localFilters)
+      // Parse recipients if they exist in the search
+      if (this.localFilters.searchRecipient) {
+        const searchTerm = this.localFilters.searchRecipient.toLowerCase();
+        this.localFilters.searchRecipient = searchTerm;
+      }
+      this.$emit('update:filters', this.localFilters);
     }
   }
 }

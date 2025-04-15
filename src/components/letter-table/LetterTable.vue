@@ -44,13 +44,17 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="letter in paginatedLetters" :key="letter.id">
               <td class="px-6 py-4 whitespace-nowrap">
-                <LetterActions 
-                  :letter="letter"
-                  @edit="openEditModal"
-                  @preview-pdf="previewPDF"
-                  @export-word="exportToWord"
-                  @delete="confirmDelete"
-                />
+                <template>
+                  <!-- In the table where LetterActions is used -->
+                  <LetterActions 
+                    :letter="letter"
+                    :is-loading="isPreviewLoading"
+                    @edit="openEditModal"
+                    @preview-pdf="previewPDF"
+                    @convert-pdf-to-word="convertPDFToWord"
+                    @delete="confirmDelete"
+                  />
+                </template>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
               <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
@@ -66,15 +70,15 @@
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.subject }}</td>
               <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                  <template v-if="letter.recipients && letter.recipients.length">
+                  <template v-if="letter.recipients && letter.recipients.length > 0">
                     <span 
                       v-for="(recipient, index) in letter.recipients" 
                       :key="index"
                       class="px-2 py-1 bg-gray-100 rounded-md text-sm"
                     >
-                      <div class="flex flex-col">
-                        <span class="text-blue-600">{{ recipient.name }}</span>
-                        <span v-if="recipient.position" class="text-xs text-gray-500">
+                      <div class="flex flex-col" v-if="recipient">
+                        <span class="text-blue-600">{{ recipient?.name || 'Unnamed Recipient' }}</span>
+                        <span v-if="recipient?.position" class="text-xs text-gray-500">
                           {{ recipient.position }}
                         </span>
                       </div>
@@ -114,6 +118,7 @@
         <div class="flex items-center justify-center min-h-screen p-4">
           <div class="relative bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4">
             <LetterModal
+              :key="selectedLetter?.id || 'new'"
               :letter="selectedLetter"
               @close="closeModal"
               @save-letter="handleLetterSaved"
@@ -210,6 +215,7 @@ export default {
   emits: ['refresh-letters'],
   data() {
     return {
+      isPreviewLoading: false,  // Add this line
       letters: [],
       recipients: [],
       showModal: false,
@@ -376,27 +382,47 @@ export default {
 
     async addLetter(letterData) {
       try {
-        // Ensure recipients are properly formatted with name/position
+        // Add debug logs
+        console.log('Raw recipients data:', letterData.recipients);
+        console.log('Available recipients:', this.recipients);
+
         const recipients = [];
-        if (Array.isArray(letterData.recipients)) {
-          for (const recipient of letterData.recipients) {
-            if (typeof recipient === 'object') {
-              recipients.push({
-                name: (recipient.name || '').trim(),
-                position: (recipient.position || '').trim()
-              });
-            } else {
-              // Handle case where recipient is just an ID
-              const foundRecipient = this.recipients.find(r => r.id === recipient);
+        const recipientsToProcess = Array.isArray(letterData.recipients) 
+          ? letterData.recipients 
+          : [letterData.recipients];
+          
+        for (const recipient of recipientsToProcess) {
+          // Handle both object and ID cases
+          if (typeof recipient === 'object') {
+            const name = (recipient.name || recipient.text || '').trim();
+            const position = (recipient.position || '').trim();
+            
+            // Handle case where recipient comes from v-select (contains both ID and text)
+            if (recipient.id && !name) {
+              const foundRecipient = this.recipients.find(r => r.id === recipient.id);
               if (foundRecipient) {
                 recipients.push({
                   name: foundRecipient.name.trim(),
                   position: foundRecipient.position.trim()
                 });
               }
+            } else if (name) {
+              recipients.push({ name, position });
+            }
+          } else if (typeof recipient === 'string' || typeof recipient === 'number') {
+            // Handle case where recipient is just an ID
+            const foundRecipient = this.recipients.find(r => r.id === recipient);
+            if (foundRecipient) {
+              recipients.push({
+                name: foundRecipient.name.trim(),
+                position: foundRecipient.position.trim()
+              });
             }
           }
         }
+
+        console.log('Processed recipients:', recipients);
+        
         if (recipients.length === 0) {
           throw new Error('At least one recipient with a name is required');
         }
@@ -496,12 +522,26 @@ export default {
         });
         
         if (response.data?.success && Array.isArray(response.data.data)) {
-          this.letters = response.data.data.map(letter => ({
-            ...letter,
-            date: letter.date || new Date().toISOString().split('T')[0],
-            type: letter.type || 'Unknown Type',
-            recipients: Array.isArray(letter.recipients) ? letter.recipients : []
-          }));
+          this.letters = response.data.data.map(letter => {
+            // Parse recipients from JSON string
+            let parsedRecipients = [];
+            try {
+              parsedRecipients = letter.recipients 
+                ? JSON.parse(letter.recipients.replace(/\\"/g, '"')) 
+                : [];
+            } catch (e) {
+              console.error('Error parsing recipients:', e);
+              parsedRecipients = [];
+            }
+
+            return {
+              ...letter,
+              date: letter.date || new Date().toISOString().split('T')[0],
+              type: letter.type || 'Unknown Type',
+              recipients: parsedRecipients
+            };
+          });
+          console.log('Processed letters:', this.letters);
         } else {
           this.letters = [];
         }
@@ -595,17 +635,29 @@ export default {
 
     // Add edit modal method
     openEditModal(letter) {
-      // Format recipients without using ID
-      const formattedRecipients = letter.recipients?.map(recipient => ({
-        name: (recipient.name || recipient.text || '').trim(),
-        position: (recipient.position || '').trim(),
-        selected: true
-      })).filter(r => r.name) || [];
-
+      // Format all letter data for editing
       this.selectedLetter = {
         ...letter,
-        recipients: formattedRecipients
+        title: letter.title || '',
+        subject: letter.subject || '',
+        type: letter.type || '',
+        date: this.formatDateForInput(letter.date),
+        content: letter.content || '',
+        sender_name: letter.sender_name || '',
+        sender_position: letter.sender_position || '',
+        recipients: letter.recipients?.map(recipient => {
+          // Find matching recipient using multiple criteria
+          const existingRecipient = this.recipients.find(r => 
+            (r.id && recipient.id && r.id === recipient.id) ||
+            (r.name.toLowerCase() === recipient.name?.toLowerCase() && 
+             r.position?.toLowerCase() === recipient.position?.toLowerCase())
+          );
+          
+          return existingRecipient ? existingRecipient.id : null;
+        }).filter(Boolean) || []
       };
+      
+      console.log('Processed recipients for edit:', this.selectedLetter.recipients);
       this.showModal = true;
     },
 
@@ -615,20 +667,27 @@ export default {
           throw new Error('Letter ID is required for update');
         }
 
-        // Ensure proper recipient formatting and validation
+        // Ensure recipients are properly formatted with name/position
         const recipients = [];
         if (Array.isArray(letterData.recipients)) {
-          letterData.recipients.forEach(recipient => {
-            const name = (recipient.name || recipient.text || '').trim();
-            if (name) {
+          for (const recipient of letterData.recipients) {
+            if (typeof recipient === 'object') {
               recipients.push({
-                name: name,
+                name: (recipient.name || '').trim(),
                 position: (recipient.position || '').trim()
               });
+            } else {
+              // Handle case where recipient is just an ID
+              const foundRecipient = this.recipients.find(r => r.id === recipient);
+              if (foundRecipient) {
+                recipients.push({
+                  name: foundRecipient.name.trim(),
+                  position: foundRecipient.position.trim()
+                });
+              }
             }
-          });
+          }
         }
-
         if (recipients.length === 0) {
           throw new Error('At least one recipient with a name is required');
         }
@@ -645,9 +704,8 @@ export default {
           sender_position: letterData.sender_position?.trim()
         };
 
-        console.log('Updating with formatted data:', formattedData);
         const response = await apiClient.put(`/letters/${letterData.id}`, formattedData);
-
+        
         if (response.data?.success) {
           await this.fetchLetters();
           this.showModal = false;
@@ -784,106 +842,66 @@ export default {
       this.showModal = true;
     },
 
-    async previewPDF(letter) {
+    async previewPDF(letter) {  // Change parameter from 'id' to 'letter'
       try {
-        console.log('Requesting preview for letter:', letter.id);
+        this.isPreviewLoading = true;
         
-        await apiClient.get(`/letters/${letter.id}/preview`, {
-          responseType: 'blob',
-          headers: {
-            'Accept': 'text/html, application/pdf',
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        });
+        // Extract ID from letter object
+        const id = letter?.id;
+        if (!id) {
+          throw new Error('Invalid letter ID');
+        }
+    
+        const response = await apiClient.get(`/letters/${id}/preview/`);
+        
+        if (!response?.data?.url) {
+          throw new Error('Invalid preview response from server');
+        }
+    
+        const pdfWindow = window.open();
+        if (pdfWindow) {
+          pdfWindow.location.href = response.data.url;
+        } else {
+          alert('Pop-up blocked. Please allow pop-ups for this site.');
+        }
       } catch (error) {
         console.error('Preview Error:', error);
-        alert('Failed to generate preview. Please try again.');
+        alert(`Failed to load PDF preview: ${error.response?.data?.message || error.message}`);
+      } finally {
+        this.isPreviewLoading = false;
       }
     },
 
-    async exportToWord(letter) {
+    // Update the conversion method
+    async convertPDFToWord(letter) {
       try {
-        console.log('Exporting letter:', letter); // Add this debug log
-        
-        // First try to get the Word document
-        const response = await apiClient.get(`/letters/${letter.id}/export-word`, {
-          responseType: 'arraybuffer',
-          headers: {
-            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'X-Requested-With': 'XMLHttpRequest',
-            // Add these headers to ensure letter data is sent
-            'Letter-Title': letter.title || '',
-            'Letter-Subject': letter.subject || '',
-            'Letter-For': Array.isArray(letter.recipients) 
-              ? letter.recipients.map(r => r.name).join(', ')
-              : (letter.recipients?.name || '')
-          }
-        });
-
-        // Log response details
-        console.log('Export response:', {
-          headers: response.headers,
-          contentType: response.headers['content-type'],
-          size: response.data?.byteLength
+        this.isPreviewLoading = true;
+        const response = await apiClient.get(`/letters/${letter.id}/convert-to-word/`, {  // Updated endpoint
+          responseType: 'blob'
         });
     
-        // Check if we got a valid response
-        if (!response.data || response.data.byteLength === 0) {
-          throw new Error('Server returned empty document');
-        }
-    
-        // Create blob with proper MIME type
-        const blob = new Blob([response.data], { 
+        const blob = new Blob([response.data], {
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         });
-    
-        // Verify blob size
-        if (blob.size === 0) {
-          throw new Error('Failed to generate document');
-        }
-    
-        // Create download link
+        
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${letter.title || 'letter'}_${new Date().toISOString().split('T')[0]}.docx`;
-        
-        // Trigger download
-        document.body.appendChild(link);
+        link.download = `${letter.title || 'document'}_converted.docx`;
         link.click();
-        
-        // Cleanup
-        setTimeout(() => {
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        }, 100);
     
+        window.URL.revokeObjectURL(url);
       } catch (error) {
-        console.error('Word Export Error:', {
-          message: error.message,
-          response: error.response,
-          status: error.response?.status,
-          contentType: error.response?.headers?.['content-type'],
-          data: error.response?.data,
-          size: error.response?.data?.byteLength || 0
-        });
-    
-        // Check if we received an error message from the server
-        if (error.response?.data) {
-          try {
-            const decoder = new TextDecoder('utf-8');
-            const errorText = decoder.decode(error.response.data);
-            const errorJson = JSON.parse(errorText);
-            alert(errorJson.message || 'Failed to export document');
-            return;
-          } catch (e) {
-            // If we can't parse the error, fall through to default message
-          }
-        }
-        
-        alert('Failed to export Word document. Please check if the letter exists and try again.');
+        console.error('Conversion Error:', error);
+        alert('Failed to convert document. Please try again later.');
+      } finally {
+        this.isPreviewLoading = false;
+        // Notify LetterActions to hide loading state
+        this.$emit('conversion-complete');
       }
     }
+
+    // Remove this commented component call from script section
   }
 };
 </script>
