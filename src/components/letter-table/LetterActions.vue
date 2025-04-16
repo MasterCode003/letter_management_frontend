@@ -9,15 +9,38 @@
       <PencilIcon class="w-5 h-5 text-blue-600" />
     </ActionButton>
 
-    <!-- Remove the Edit Modal section completely -->
-
     <ActionButton variant="preview" @click="showPreviewModal = true" title="Preview & Export">
       <EyeIcon class="w-5 h-5 text-purple-600" />
     </ActionButton>
 
-    <ActionButton variant="delete" @click="showDeleteModal = true" title="Delete Letter">
+    <ActionButton variant="delete" @click="handleDelete" title="Delete Letter">
       <TrashIcon class="w-5 h-5 text-red-600" />
     </ActionButton>
+
+    <!-- Success Message Modal -->
+    <SuccessMessageModal
+      v-if="showSuccessMessage"
+      message="Letter successfully deleted!"
+      @close="showSuccessMessage = false"
+    />
+
+    <!-- Error Message Modal -->
+    <div v-if="showErrorMessage" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
+        <div class="flex items-center text-red-600 mb-4">
+          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="text-lg font-medium">Conversion Failed</h3>
+        </div>
+        <p class="text-gray-600 mb-4">{{ errorMessage }}</p>
+        <div class="flex justify-end">
+          <button @click="showErrorMessage = false" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Loading Modal -->
     <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -47,7 +70,7 @@
                 class="w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-gray-100"
               >
                 <i class="fas fa-file-word text-blue-500 mr-3 text-lg"></i>
-                <span>Export to Word</span>
+                <span>Convert PDF to Word</span>
               </button>
             </div>
           </div>
@@ -69,6 +92,7 @@
 import ActionButton from './ActionButton.vue'
 import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/vue/24/solid'
 import { ArrowPathIcon } from '@heroicons/vue/24/solid'
+import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 
 export default {
   name: 'LetterActions',
@@ -77,7 +101,8 @@ export default {
     PencilIcon,
     EyeIcon,
     TrashIcon,
-    ArrowPathIcon // Add this line
+    ArrowPathIcon,
+    SuccessMessageModal
   },
   props: {
     letter: {
@@ -88,36 +113,46 @@ export default {
   data() {
     return {
       showPreviewModal: false,
-      showDeleteModal: false,
+      showSuccessMessage: false,
       showEditModal: false,
       isConverting: false,
-      deleteConfirmed: false
+      showErrorMessage: false,
+      errorMessage: ''
     }
   },
   methods: {
+    async handleExportWord() {
+      try {
+        this.isConverting = true;
+        this.showPreviewModal = false;
+        
+        const result = await this.$emit('convert-pdf-to-word', this.letter);
+        
+        if (!result || result.success === false) {
+          this.errorMessage = result?.message || 'Failed to convert PDF to Word';
+          this.showErrorMessage = true;
+        }
+      } catch (error) {
+        this.errorMessage = error.message || 'Failed to convert PDF to Word. Please try again later.';
+        this.showErrorMessage = true;
+      } finally {
+        this.isConverting = false;
+      }
+    },
     handlePreviewPDF() {
       this.$emit('preview-pdf', this.letter);
       this.showPreviewModal = false;
     },
-    handleExportWord() {
-      this.isConverting = true;
-      this.$emit('convert-pdf-to-word', this.letter);
-      this.showPreviewModal = false;
+    handleDelete() {
+      this.$emit('delete', this.letter.id);
+      this.showSuccessMessage = true;
       
       setTimeout(() => {
-        this.isConverting = false;
-      }, 10000);
-    }, // Add comma here between methods
-    confirmDelete() {
-      this.deleteConfirmed = true;
-      this.$emit('delete', this.letter.id);
-      setTimeout(() => {
-        this.deleteConfirmed = false;
-        this.showDeleteModal = false;
+        this.showSuccessMessage = false;
       }, 2000);
     }
   }
-};
+}
 </script>
 
 <style scoped>

@@ -257,43 +257,20 @@
     </div>
   </div>
 
-  <!-- Add Success Message Modal -->
-  <div v-if="showSuccess" class="fixed inset-0 z-[60] overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
-      <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div class="p-6 text-center">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">
-            {{ editMode ? 'Letter Updated!' : 'Letter Saved!' }}
-          </h3>
-          <p class="mt-2 text-sm text-gray-500">
-            Your letter has been successfully {{ editMode ? 'updated' : 'saved' }}.
-          </p>
-          <div class="mt-6">
-            <button
-              type="button"
-              @click="showSuccess = false"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Success Message Modal -->
+  <SuccessMessageModal
+    v-if="showSuccess"
+    :message="editMode ? 'Letter Updated!' : 'Letter Saved!'"
+    @close="showSuccess = false"
+  />
 </template>
 
 <script>
 import axios from 'axios';
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
-import { nextTick } from 'vue'  // Add this import from the second script
+import { nextTick } from 'vue'
+import SuccessMessageModal from './modals/SuccessMessageModal.vue'  // Add this import
 
 const apiClient = axios.create({
   baseURL: 'http://192.168.5.112:8000/api',
@@ -308,7 +285,8 @@ const apiClient = axios.create({
 export default {
   name: 'LetterForm',
   components: {
-    QuillEditor
+    QuillEditor,
+    SuccessMessageModal  // Register the component here
   },
   emits: ['close', 'save', 'save-letter', 'update-letter', 'refresh-letters'],
   props: {
@@ -331,7 +309,7 @@ export default {
       },
       errors: {},
       showConfirmModal: false,
-      showSuccess: false,
+      showSuccess: false,  // Keep this for controlling visibility
       recipientsList: [],
       editMode: false,
       isSubmitting: false
@@ -454,6 +432,21 @@ export default {
       };
     },  // Add comma here
 
+    handleBack() {
+      // Reset form and close modal
+      this.errors = {};
+      this.letterForm = {
+        title: '',
+        type: '',
+        subject: '',
+        date: new Date().toISOString().split('T')[0],
+        recipients: [{ id: '', name: '', position: '' }],
+        content: '',
+        sender_name: '',
+        sender_position: ''
+      };
+      this.closeModal();
+    },
     handleSubmit() {
       // Reset errors
       this.errors = {};
@@ -464,26 +457,36 @@ export default {
       try {
         this.isSubmitting = true;
         
+        // Format recipients data correctly
         const formData = {
           ...this.letterForm,
-          // Send recipient IDs directly
-          recipients: this.letterForm.recipients.map(r => r.id)
+          recipients: this.letterForm.recipients.map(r => ({
+            id: r.id,
+            name: r.name,
+            position: r.position
+          })).filter(r => r.id), // Filter out empty recipients
+          title: this.letterForm.title,
+          type: this.letterForm.type,
+          subject: this.letterForm.subject,
+          date: this.letterForm.date,
+          content: this.letterForm.content,
+          sender_name: this.letterForm.sender_name,
+          sender_position: this.letterForm.sender_position
         };
+
+        console.log('Sending data:', formData);
 
         let response;
         if (this.editMode) {
           response = await apiClient.put(`/letters/${this.letter.id}/`, formData);
         } else {
-          // Add trailing slash for Django compatibility
           response = await apiClient.post('/letters/', formData);
         }
 
-        // Handle successful response
         this.showConfirmModal = false;
         this.showSuccess = true;
         this.$emit('refresh-letters');
 
-        // Only close modal after successful API response
         setTimeout(() => {
           this.showSuccess = false;
           this.closeModal();

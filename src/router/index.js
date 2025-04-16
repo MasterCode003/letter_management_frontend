@@ -1,30 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LetterTable from '../components/letter-table/LetterTable.vue'
-import RecipientTable from '../components/recipient-table/RecipientTable.vue'
-import LetterModal from '../components/letter-table/LetterModal.vue'
+import LetterTable from '@/components/letter-table/LetterTable.vue'
+import RecipientTable from '@/components/recipient-table/RecipientTable.vue'
 
 const routes = [
   {
+    path: '/',
+    redirect: '/letters'  // Add this redirect
+  },
+  {
     path: '/letters',
-    name: 'LetterTable',
-    component: LetterTable,
-    children: [
-      {
-        path: 'new',
-        name: 'NewLetter',
-        component: LetterModal
-      },
-      {
-        path: 'edit/:id',
-        name: 'EditLetter',
-        component: LetterModal,
-        props: true
-      }
-    ]
+    name: 'Letters',
+    component: LetterTable
   },
   {
     path: '/recipients',
-    name: 'RecipientTable',
+    name: 'Recipients',
     component: RecipientTable
   }
 ]

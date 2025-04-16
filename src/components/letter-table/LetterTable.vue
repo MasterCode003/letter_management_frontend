@@ -171,11 +171,12 @@
       Letter deleted successfully!
     </div>
 
+    <!-- Update the LetterEditModal component usage -->
     <LetterEditModal
       v-if="showEditModal"
       :show="showEditModal"
       :letter="selectedLetter"
-      :recipients="availableRecipients"
+      :recipients="recipients"
       @update:show="showEditModal = $event"
       @save="handleLetterSaved"
     />
@@ -203,9 +204,10 @@
 import apiClient from '@/utils/apiClient';
 import LetterModal from './LetterModal.vue';
 import LetterActions from './LetterActions.vue';
+// Update the import statement
 import SearchFilters from './SearchFilters.vue';
 import TablePagination from './TablePagination.vue';
-import DeleteConfirmationModal from './DeleteConfirmationModal.vue';
+import DeleteConfirmationModal from './modals/DeleteConfirmationModal.vue';  // Updated path
 import useLetterUpdate from './composables/useLetterUpdate';
 import useLetterDelete from './composables/useLetterDelete';
 import useLetterPreview from './composables/useLetterPreview';
@@ -226,7 +228,7 @@ export default {
     return {
       isPreviewLoading: false,  // Add this line
       letters: [],
-      recipients: [],
+      recipients: [], // Add this line if not already present
       showModal: false,
       showLetterForm: false,
       showEditModal: false,
@@ -555,23 +557,26 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        console.log('Recipients response:', response.data); // Debug log
+        console.log('Recipients response:', response.data);
 
-        if (response.data?.success && Array.isArray(response.data.data)) {
-          this.recipients = response.data.data.map(recipient => ({
+        // Handle both data structures: {data: [...]} and direct array
+        const recipientsData = response.data?.data || response.data || [];
+        
+        if (Array.isArray(recipientsData)) {
+          this.recipients = recipientsData.map(recipient => ({
             id: recipient.id,
             name: recipient.name || '',
             position: recipient.position || '',
             selected: false
           }));
-          console.log('Processed recipients:', this.recipients); // Debug log
+          console.log('Processed recipients:', this.recipients);
         } else {
           console.warn('Invalid recipients data structure:', response.data);
           this.recipients = [];
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
-        console.log('Error response:', error.response); // Debug log
+        console.log('Error response:', error.response);
         this.recipients = [];
         if (error.response?.status === 404) {
           alert('Recipients endpoint not found. Please check your API configuration.');
@@ -603,7 +608,7 @@ export default {
 
     // Add edit modal method
     openEditModal(letter) {
-      // Format all letter data for editing
+      // Format all letter data for editing, including recipients with their full details
       this.selectedLetter = {
         ...letter,
         id: letter.id,
@@ -614,19 +619,13 @@ export default {
         content: letter.content || '',
         sender_name: letter.sender_name || '',
         sender_position: letter.sender_position || '',
-        recipients: letter.recipients?.map(recipient => {
-          // Find the matching recipient from the available recipients
-          const existingRecipient = this.recipients.find(r => 
-            r.id === recipient.id || 
-            (r.name === recipient.name && r.position === recipient.position)
-          );
-          
-          return existingRecipient ? existingRecipient.id : {
-            id: recipient.id,
-            name: recipient.name,
-            position: recipient.position
-          };
-        }) || []
+        recipients: Array.isArray(letter.recipients) 
+          ? letter.recipients.map(recipient => ({
+              id: recipient.id,
+              name: recipient.name || '',
+              position: recipient.position || ''
+            }))
+          : [{ id: '', name: '', position: '' }]
       };
       
       console.log('Opening edit modal with data:', this.selectedLetter);
@@ -754,31 +753,16 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        console.log('Recipients response:', response.data); // Debug log
-
-        if (response.data?.success && Array.isArray(response.data.data)) {
-          this.recipients = response.data.data.map(recipient => ({
-            id: recipient.id,
-            name: recipient.name || '',
-            position: recipient.position || '',
-            selected: false
-          }));
-          console.log('Processed recipients:', this.recipients); // Debug log
-        } else {
-          console.warn('Invalid recipients data structure:', response.data);
-          this.recipients = [];
+        if (response.data) {
+          this.recipients = Array.isArray(response.data.data) 
+            ? response.data.data 
+            : Array.isArray(response.data) 
+              ? response.data 
+              : [];
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
-        console.log('Error response:', error.response); // Debug log
         this.recipients = [];
-        if (error.response?.status === 404) {
-          alert('Recipients endpoint not found. Please check your API configuration.');
-        } else if (error.response?.data?.error?.includes('Table')) {
-          alert('Recipients table is not set up. Please contact your system administrator.');
-        } else {
-          alert('Failed to fetch recipients. Please check the console for details.');
-        }
       }
     },
     // Add pagination methods
@@ -849,11 +833,36 @@ export default {
     async convertPDFToWord(letter) {
       try {
         this.isPreviewLoading = true;
-        const response = await apiClient.get(`/letters/${letter.id}/convert-to-word/`, {
+        const response = await apiClient.post(`/letters/${letter.id}/convert-to-word/`, {
+          letter_id: letter.id
+        }, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        console.log('Server Response:', response.data); // Debug log
+
+        if (!response.data) {
+          throw new Error('Empty response from server');
+        }
+
+        if (response.data.error) {
+          throw new Error(response.data.error);
+        }
+
+        const fileUrl = response.data.file_url;
+        if (!fileUrl) {
+          throw new Error('No converted file URL received');
+        }
+
+        // Download file
+        const downloadResponse = await apiClient.get(fileUrl, {
           responseType: 'blob'
         });
-    
-        const blob = new Blob([response.data], {
+
+        const blob = new Blob([downloadResponse.data], {
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         });
         
@@ -861,18 +870,64 @@ export default {
         const link = document.createElement('a');
         link.href = url;
         link.download = `${letter.title || 'document'}_converted.docx`;
+        document.body.appendChild(link);
         link.click();
-    
+        document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+        
+        return { success: true };
       } catch (error) {
-        console.error('Conversion Error:', error);
-        alert('Failed to convert document. Please try again later.');
+        console.error('Detailed conversion error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        throw error;
       } finally {
         this.isPreviewLoading = false;
-        this.$emit('conversion-complete');
       }
     }
   }
 };
 </script>
 
+methods: {
+  async handleConvertPDFToWord(letter, callback) {
+    try {
+      const response = await axios.post(`/api/letters/${letter.id}/convert-to-word`);
+      callback(response.data);
+      
+      if (response.data.success) {
+        // Handle successful conversion
+        const link = document.createElement('a');
+        link.href = response.data.file_url;
+        link.download = `letter_${letter.id}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      callback({
+        success: false,
+        message: error.response?.data?.message || 'Conversion failed. Please try again.'
+      });
+    }
+  }
+}
+
+<!-- Replace the existing delete confirmation modal with this -->
+    <DeleteConfirmationModal
+      v-if="showDeleteConfirmModal"
+      @confirm="deleteLetter"
+      @cancel="showDeleteConfirmModal = false"
+    />
+
+// Add URL validation helper at the bottom of the file
+function isValidUrl(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
