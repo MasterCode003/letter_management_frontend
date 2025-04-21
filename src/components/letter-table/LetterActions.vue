@@ -54,8 +54,7 @@
       </div>
     </div>
 
-    
-    <!-- Keep only the Word conversion loading modal -->
+    <!-- Loading modal -->
     <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg flex items-center gap-3">
         <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
@@ -97,9 +96,8 @@ export default {
   },
   data() {
     return {
-      showPreviewModal: false, // Changed from showConvertModal
+      showPreviewModal: false,
       showSuccessMessage: false,
-      showEditModal: false,
       isConverting: false,
       isLoadingPDF: false,
       showErrorMessage: false,
@@ -110,7 +108,7 @@ export default {
     async handleExportWord() {
       try {
         this.isConverting = true;
-        this.showPreviewModal = false; // Changed from showPreviewModal
+        this.showPreviewModal = false;
         await this.$emit('convert-pdf-to-word', this.letter);
       } catch (error) {
         console.error('Conversion error:', error);
@@ -126,20 +124,6 @@ export default {
         const endpoint = `${baseUrl}/api/letters/preview-pdf/${this.letter.id}`;
         
         console.log('Attempting to fetch PDF from:', endpoint);
-        console.log('Letter ID:', this.letter.id);
-        
-        // First verify the endpoint exists
-        const checkResponse = await fetch(endpoint, {
-          method: 'HEAD',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (!checkResponse.ok) {
-          throw new Error(`Endpoint not found (${checkResponse.status}). Please verify the backend route exists.`);
-        }
-
         this.isLoadingPDF = true;
         
         const response = await fetch(endpoint, {
@@ -147,14 +131,11 @@ export default {
             'Accept': 'application/pdf',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-        }).catch(err => {
-          throw new Error(`Network error: ${err.message}`);
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Server response:', response.status, errorText);
-          throw new Error(`Failed to load PDF: ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to load PDF: ${response.status} ${errorText}`);
         }
         
         const blob = await response.blob();
@@ -172,7 +153,6 @@ export default {
     handleDelete() {
       this.$emit('delete', this.letter.id);
       this.showSuccessMessage = true;
-      
       setTimeout(() => {
         this.showSuccessMessage = false;
       }, 2000);
@@ -184,15 +164,5 @@ export default {
 <style scoped>
 .flex.items-center.space-x-2 {
   gap: 0.75rem;
-}
-
-.fas {
-  font-size: 1.1rem;
-}
-
-/* Add styles for disabled state */
-.disabled\:opacity-50:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>
