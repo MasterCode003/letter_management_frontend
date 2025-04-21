@@ -799,11 +799,10 @@ export default {
       this.showModal = true;
     },
 
-    async previewPDF(letter) {  // Change parameter from 'id' to 'letter'
+    async previewPDF(letter) {
       try {
         this.isPreviewLoading = true;
         
-        // Extract ID from letter object
         const id = letter?.id;
         if (!id) {
           throw new Error('Invalid letter ID');
@@ -815,12 +814,47 @@ export default {
           throw new Error('Invalid preview response from server');
         }
     
-        const pdfWindow = window.open();
-        if (pdfWindow) {
-          pdfWindow.location.href = response.data.url;
-        } else {
-          alert('Pop-up blocked. Please allow pop-ups for this site.');
-        }
+        // Create an iframe for PDF preview
+        const iframe = document.createElement('iframe');
+        iframe.src = response.data.url;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+    
+        // Create a modal container
+        const modalContainer = document.createElement('div');
+        modalContainer.style.position = 'fixed';
+        modalContainer.style.top = '0';
+        modalContainer.style.left = '0';
+        modalContainer.style.width = '100%';
+        modalContainer.style.height = '100%';
+        modalContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+        modalContainer.style.zIndex = '9999';
+        modalContainer.style.display = 'flex';
+        modalContainer.style.flexDirection = 'column';
+        modalContainer.style.padding = '2rem';
+    
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '✕ Close';
+        closeButton.style.alignSelf = 'flex-end';
+        closeButton.style.marginBottom = '1rem';
+        closeButton.style.padding = '0.5rem 1rem';
+        closeButton.style.backgroundColor = '#ffffff';
+        closeButton.style.border = 'none';
+        closeButton.style.borderRadius = '0.375rem';
+        closeButton.style.cursor = 'pointer';
+    
+        closeButton.onclick = () => {
+          document.body.removeChild(modalContainer);
+          document.body.style.overflow = 'auto';
+        };
+    
+        modalContainer.appendChild(closeButton);
+        modalContainer.appendChild(iframe);
+        
+        document.body.style.overflow = 'hidden';
+        document.body.appendChild(modalContainer);
       } catch (error) {
         console.error('Preview Error:', error);
         alert(`Failed to load PDF preview: ${error.response?.data?.message || error.message}`);
@@ -888,27 +922,6 @@ export default {
 </script>
 
 
-async handleConvertPDFToWord(letter, callback) {
-  try {
-    const response = await axios.post(`/api/letters/${letter.id}/convert-to-word`);
-    callback(response.data);
-    
-    if (response.data.success) {
-      // Handle successful conversion
-      const link = document.createElement('a');
-      link.href = response.data.file_url;
-      link.download = `letter_${letter.id}.docx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  } catch (error) {
-    callback({
-      success: false,
-      message: error.response?.data?.message || 'Conversion failed. Please try again.'
-    });
-  }
-}
 
 <!-- Replace the existing delete confirmation modal with this -->
     <DeleteConfirmationModal
@@ -917,13 +930,6 @@ async handleConvertPDFToWord(letter, callback) {
       @cancel="showDeleteConfirmModal = false"
     />
 
-function isValidUrl(url) {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
+
 
 

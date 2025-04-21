@@ -9,14 +9,26 @@
       <PencilIcon class="w-5 h-5 text-blue-600" />
     </ActionButton>
 
-    <ActionButton variant="preview" @click="showPreviewModal = true" title="Preview & Export">
-      <EyeIcon class="w-5 h-5 text-purple-600" />
+    <ActionButton 
+      variant="document" 
+      @click="showPreviewModal = true" 
+      title="Document Options"
+    >
+      <DocumentIcon class="w-5 h-5 text-purple-600" />
     </ActionButton>
 
     <ActionButton variant="delete" @click="handleDelete" title="Delete Letter">
       <TrashIcon class="w-5 h-5 text-red-600" />
     </ActionButton>
 
+    <PreviewOptionsModal
+      v-if="showPreviewModal"
+      :letter="letter"
+      @preview="handlePreviewPDF"
+      @convert-pdf-to-word="handleExportWord"
+      @close="showPreviewModal = false"
+    />
+    
     <!-- Success Message Modal -->
     <SuccessMessageModal
       v-if="showSuccessMessage"
@@ -42,67 +54,40 @@
       </div>
     </div>
 
-    <!-- Loading Modal -->
+    
+    <!-- Keep only the Word conversion loading modal -->
     <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg flex items-center">
+      <div class="bg-white p-6 rounded-lg flex items-center gap-3">
         <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
         <span>Converting to Word...</span>
-      </div>
-    </div>
-
-    <!-- Preview Modal -->
-    <div v-if="showPreviewModal" class="fixed inset-0 z-50 overflow-y-auto">
-      <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm" @click="showPreviewModal = false"></div>
-      <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-          <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Preview Options</h3>
-            <div class="space-y-3">
-              <button
-                @click="handlePreviewPDF"
-                class="w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-gray-100"
-              >
-                <i class="fas fa-file-pdf text-red-500 mr-3 text-lg"></i>
-                <span>Preview as PDF</span>
-              </button>
-              <button
-                @click="handleExportWord"
-                class="w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-gray-100"
-              >
-                <i class="fas fa-file-word text-blue-500 mr-3 text-lg"></i>
-                <span>Convert PDF to Word</span>
-              </button>
-            </div>
-          </div>
-          <div class="bg-gray-50 px-6 py-3 flex justify-end rounded-b-lg">
-            <button
-              @click="showPreviewModal = false"
-              class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              Close
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { CSpinner } from '@coreui/vue'
 import ActionButton from './ActionButton.vue'
-import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/vue/24/solid'
-import { ArrowPathIcon } from '@heroicons/vue/24/solid'
+import { 
+  PencilIcon, 
+  TrashIcon,
+  ArrowPathIcon,
+  DocumentIcon 
+} from '@heroicons/vue/24/solid'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
+import PreviewOptionsModal from './modals/PreviewOptionsModal.vue'
 
 export default {
   name: 'LetterActions',
   components: {
     ActionButton,
     PencilIcon,
-    EyeIcon,
     TrashIcon,
     ArrowPathIcon,
-    SuccessMessageModal
+    DocumentIcon,
+    SuccessMessageModal,
+    CSpinner,
+    PreviewOptionsModal
   },
   props: {
     letter: {
@@ -112,10 +97,11 @@ export default {
   },
   data() {
     return {
-      showPreviewModal: false,
+      showPreviewModal: false, // Changed from showConvertModal
       showSuccessMessage: false,
       showEditModal: false,
       isConverting: false,
+      isLoadingPDF: false,
       showErrorMessage: false,
       errorMessage: ''
     }
@@ -124,24 +110,64 @@ export default {
     async handleExportWord() {
       try {
         this.isConverting = true;
-        this.showPreviewModal = false;
-        
-        const result = await this.$emit('convert-pdf-to-word', this.letter);
-        
-        if (!result || result.success === false) {
-          this.errorMessage = result?.message || 'Failed to convert PDF to Word';
-          this.showErrorMessage = true;
-        }
+        this.showPreviewModal = false; // Changed from showPreviewModal
+        await this.$emit('convert-pdf-to-word', this.letter);
       } catch (error) {
-        this.errorMessage = error.message || 'Failed to convert PDF to Word. Please try again later.';
+        console.error('Conversion error:', error);
         this.showErrorMessage = true;
+        this.errorMessage = 'Failed to convert PDF to Word. Please try again.';
       } finally {
         this.isConverting = false;
       }
     },
-    handlePreviewPDF() {
-      this.$emit('preview-pdf', this.letter);
-      this.showPreviewModal = false;
+    async handlePreviewPDF() {
+      try {
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://192.168.5.71:8000';
+        const endpoint = `${baseUrl}/api/letters/preview-pdf/${this.letter.id}`;
+        
+        console.log('Attempting to fetch PDF from:', endpoint);
+        console.log('Letter ID:', this.letter.id);
+        
+        // First verify the endpoint exists
+        const checkResponse = await fetch(endpoint, {
+          method: 'HEAD',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!checkResponse.ok) {
+          throw new Error(`Endpoint not found (${checkResponse.status}). Please verify the backend route exists.`);
+        }
+
+        this.isLoadingPDF = true;
+        
+        const response = await fetch(endpoint, {
+          headers: {
+            'Accept': 'application/pdf',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+        }).catch(err => {
+          throw new Error(`Network error: ${err.message}`);
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Server response:', response.status, errorText);
+          throw new Error(`Failed to load PDF: ${response.status} ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('PDF preview error:', error);
+        this.showErrorMessage = true;
+        this.errorMessage = error.message;
+      } finally {
+        this.isLoadingPDF = false;
+      }
     },
     handleDelete() {
       this.$emit('delete', this.letter.id);
@@ -157,11 +183,16 @@ export default {
 
 <style scoped>
 .flex.items-center.space-x-2 {
-  gap: 0.75rem; /* Ensure proper spacing between buttons */
+  gap: 0.75rem;
 }
 
-/* Remove conflicting fas styles */
 .fas {
   font-size: 1.1rem;
+}
+
+/* Add styles for disabled state */
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
