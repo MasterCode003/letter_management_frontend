@@ -9,7 +9,7 @@ const apiClient = axios.create({
     'Pragma': 'no-cache'
   },
   withCredentials: false,
-  timeout: 30000,
+  timeout: 30000, // Increased from 15000ms to 30000ms (30 seconds)
   maxRetries: 3,
   retryDelay: 1000
 });

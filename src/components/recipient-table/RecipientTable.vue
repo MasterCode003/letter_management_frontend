@@ -153,8 +153,7 @@ const displayedPages = computed(() => {
 const fetchRecipients = async () => {
   try {
     const response = await apiClient.get('/recipients', {
-      // Add specific config for this request
-      timeout: 10000,
+      timeout: 30000, // Increased timeout
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
