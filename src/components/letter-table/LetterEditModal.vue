@@ -159,20 +159,24 @@ export default {
     },
     async handleSubmit() {
       try {
+        if (!this.formData) {
+          throw new Error('Form data is required');
+        }
+        
         const formattedData = {
           ...this.formData,
-          recipients: this.formData.recipients
+          recipients: this.formData.recipients.filter(r => r.id && r.name)
         };
         
-        // Clear previous errors
         this.errors = [];
-        const response = await this.$emit('save', formattedData);
-        
+        await this.$emit('save', formattedData);
+        this.close();
       } catch (error) {
+        console.error('Submit error:', error);
         if (error.response?.data?.errors) {
           this.errors = Object.values(error.response.data.errors).flat();
         } else {
-          this.errors = ['An error occurred while saving the letter'];
+          this.errors = [error.message || 'An error occurred while saving the letter'];
         }
       }
     },

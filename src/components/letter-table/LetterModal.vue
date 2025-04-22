@@ -175,7 +175,27 @@
                       v-model:content="letterForm.content"
                       contentType="html"
                       theme="snow"
-                      toolbar="full"
+                      :options="{
+                        modules: {
+                          toolbar: [
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'header': 1 }, { 'header': 2 }],
+                            [{ 'align': [] }],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                            [{ 'size': ['small', 'normal', 'large', 'huge'] }], // Fixed size options
+                            ['clean']
+                          ]
+                        },
+                        placeholder: 'Write your content here...',
+                        preserveWhitespace: true,
+                        // Add these formats
+                        formats: [
+                          'bold', 'italic', 'underline', 'strike',
+                          'header', 'list', 'indent', 'align',
+                          'size' // Add size to allowed formats
+                        ]
+                      }"
                       class="h-[300px]"
                       :class="{'border-red-500': errors.content}"
                     />
@@ -270,7 +290,8 @@ import axios from 'axios';
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { nextTick } from 'vue'
-import SuccessMessageModal from './modals/SuccessMessageModal.vue'  // Add this import
+import SuccessMessageModal from './modals/SuccessMessageModal.vue'
+import html2pdf from 'html2pdf.js/dist/html2pdf.bundle.min.js'
 
 const apiClient = axios.create({
   baseURL: 'http://192.168.5.71:8000/api',
@@ -390,16 +411,25 @@ export default {
         const response = await apiClient.get('/recipients/');
         console.log('Recipients response:', response.data);
         
-        if (response.data && Array.isArray(response.data.data)) {
-          this.recipientsList = response.data.data;
-        } else if (Array.isArray(response.data)) {
-          this.recipientsList = response.data;
+        // More robust response data validation
+        if (response && response.data) {
+          if (Array.isArray(response.data.data)) {
+            this.recipientsList = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            this.recipientsList = response.data;
+          } else {
+            this.recipientsList = []; // Set empty array as fallback
+            console.warn('Unexpected response format:', response.data);
+          }
         } else {
-          throw new Error('Invalid response format');
+          this.recipientsList = []; // Set empty array as fallback
+          console.warn('Empty or invalid response');
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
-        alert('Unable to fetch recipients. Please try again later.');
+        this.recipientsList = []; // Set empty array on error
+        // More user-friendly error message
+        alert('Unable to load recipients. Please check your connection and try again.');
       }
     },
     updateRecipient(index, recipientId) {
@@ -453,6 +483,105 @@ export default {
       this.showConfirmModal = true;
     },
 
+    async generatePDF() {
+      const container = document.createElement('div');
+      container.className = 'pdf-content';
+      
+      // Create letter structure with proper formatting
+      const letterHTML = `
+        <div class="letter-header">
+          <h1 style="font-size: 18px; margin-bottom: 20px;">${this.letterForm.title}</h1>
+          <div style="margin-bottom: 15px;">
+            <strong>Type:</strong> ${this.letterForm.type}<br>
+            <strong>Date:</strong> ${this.letterForm.date}<br>
+            <strong>Subject:</strong> ${this.letterForm.subject}
+          </div>
+          <div style="margin-bottom: 15px;">
+            <strong>To:</strong><br>
+            ${this.letterForm.recipients.map(r => 
+              `${r.name}<br>${r.position}`
+            ).join('<br>')}
+          </div>
+        </div>
+        <div class="letter-content" style="margin: 30px 0;">
+          ${this.letterForm.content}
+        </div>
+        <div class="letter-footer" style="margin-top: 40px;">
+          <div style="text-align: left;">
+            <strong>${this.letterForm.sender_name}</strong><br>
+            ${this.letterForm.sender_position}
+          </div>
+        </div>
+      `;
+      
+      container.innerHTML = letterHTML;
+
+      const opt = {
+        margin: [25, 25],
+        filename: `${this.letterForm.title || 'letter'}.pdf`,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 1024
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait',
+          putOnlyUsedFonts: true
+        }
+      };
+
+      const style = document.createElement('style');
+      style.textContent = `
+        .pdf-content {
+          font-family: Arial, sans-serif !important;
+          /* Add these new rules */
+          white-space: normal !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+        }
+        /* Force all elements to inherit styles */
+        .ql-editor, .ql-editor * {
+          all: revert !important;
+          font-family: inherit !important;
+          line-height: inherit !important;
+        }
+        /* Explicitly define text decoration */
+        u {
+          text-decoration: underline !important;
+        }
+        strike {
+          text-decoration: line-through !important;
+        }
+        
+        /* Size classes */
+        .ql-size-small { 
+          font-size: 0.75em !important; 
+        }
+        .ql-size-normal { 
+          font-size: 1em !important; 
+        }
+        .ql-size-large { 
+          font-size: 1.5em !important; 
+        }
+        .ql-size-huge { 
+          font-size: 2em !important; 
+        }
+      `;
+      document.head.appendChild(style);
+
+      try {
+        await html2pdf().set(opt).from(container).save();
+      } finally {
+        style.remove();
+      }
+    }, // Add comma here
+
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
@@ -482,6 +611,9 @@ export default {
         } else {
           response = await apiClient.post('/letters/', formData);
         }
+
+        // Remove the PDF generation line from here
+        // await this.generatePDF();
 
         this.showConfirmModal = false;
         this.showSuccess = true;
@@ -513,6 +645,62 @@ export default {
 <style>
 .prose {
   width: 100%;
+}
+
+/* Add these styles for better Quill editor formatting */
+.ql-editor {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.ql-editor p {
+  margin-bottom: 1em;
+}
+
+.ql-editor strong {
+  font-weight: 700;
+}
+
+.ql-editor h1 {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+}
+
+.ql-editor h2 {
+  font-size: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor pre {
+  white-space: pre-wrap;
+}
+</style>
+
+<style>
+/* Enhanced Quill editor styles */
+.ql-editor {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #000;
+}
+
+.ql-editor p {
+  margin-bottom: 1em !important;
+}
+
+.ql-editor strong,
+.ql-editor b {
+  font-weight: 700 !important;
+}
+
+.ql-editor ul,
+.ql-editor ol {
+  padding-left: 20px !important;
+  margin-bottom: 1em !important;
+}
+
+.ql-editor li {
+  margin-bottom: 0.5em !important;
 }
 </style>
 

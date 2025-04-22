@@ -2,7 +2,7 @@
   <div class="flex items-center space-x-2">
     <ActionButton 
       variant="edit" 
-      @click="$emit('edit', letter)" 
+      @click="handleEdit"
       title="Edit Letter"
       class="p-2 hover:bg-blue-50 rounded-md"
     >
@@ -94,6 +94,7 @@ export default {
       required: true
     }
   },
+  emits: ['edit', 'delete', 'preview-pdf', 'convert-pdf-to-word'],
   data() {
     return {
       showPreviewModal: false,
@@ -148,6 +149,33 @@ export default {
         this.errorMessage = error.message;
       } finally {
         this.isLoadingPDF = false;
+      }
+    },
+    handleEdit() {
+      try {
+        if (!this.letter) {
+          throw new Error('Letter data is missing');
+        }
+        
+        const validLetter = {
+          id: this.letter.id,
+          title: this.letter.title || '',
+          type: this.letter.type || '',
+          subject: this.letter.subject || '',
+          date: this.letter.date || '',
+          recipients: (Array.isArray(this.letter.recipients) ? this.letter.recipients : []).map(r => ({
+            id: r?.id || '',
+            name: r?.name || '',
+            position: r?.position || ''
+          })),
+          content: this.letter.content || '',
+          sender_name: this.letter.sender_name || '',
+          sender_position: this.letter.sender_position || ''
+        };
+        
+        this.$emit('edit', validLetter);
+      } catch (error) {
+        console.error('Edit error:', error);
       }
     },
     handleDelete() {

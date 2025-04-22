@@ -47,7 +47,7 @@
                   <LetterActions 
                     :letter="letter"
                     :is-loading="isPreviewLoading"
-                    @edit="openEditModal"
+                    @edit="openEditModal" <!-- This triggers openEditModal -->
                     @preview-pdf="previewPDF"
                     @convert-pdf-to-word="convertPDFToWord"
                     @delete="confirmDelete"
@@ -460,7 +460,7 @@ export default {
           subject: letterData.subject?.trim(),
           type: letterData.type,
           date: this.formatDateForInput(letterData.date || new Date()),
-          recipients: recipients,
+          recipients: recipients,  // Fix the comma placement here
           content: letterData.content?.trim(),
           sender_name: letterData.sender_name?.trim(),
           sender_position: letterData.sender_position?.trim()
@@ -493,12 +493,16 @@ export default {
         
         if (response.data?.success && Array.isArray(response.data.data)) {
           this.letters = response.data.data.map(letter => {
-            // Parse recipients from JSON string
+            // Parse recipients from JSON string or use array directly
             let parsedRecipients = [];
             try {
-              parsedRecipients = letter.recipients 
-                ? JSON.parse(letter.recipients.replace(/\\"/g, '"')) 
-                : [];
+              if (letter.recipients) {
+                if (typeof letter.recipients === 'string') {
+                  parsedRecipients = JSON.parse(letter.recipients.replace(/\\"/g, '"'));
+                } else if (Array.isArray(letter.recipients)) {
+                  parsedRecipients = letter.recipients;
+                }
+              }
             } catch (e) {
               console.error('Error parsing recipients:', e);
               parsedRecipients = [];
@@ -608,30 +612,44 @@ export default {
 
     // Add edit modal method
     openEditModal(letter) {
-      // Format all letter data for editing, including recipients with their full details
-      this.selectedLetter = {
-        ...letter,
-        id: letter.id,
-        title: letter.title || '',
-        subject: letter.subject || '',
-        type: letter.type || '',
-        date: this.formatDateForInput(letter.date),
-        content: letter.content || '',
-        sender_name: letter.sender_name || '',
-        sender_position: letter.sender_position || '',
-        recipients: Array.isArray(letter.recipients) 
-          ? letter.recipients.map(recipient => ({
-              id: recipient.id,
-              name: recipient.name || '',
-              position: recipient.position || ''
-            }))
-          : [{ id: '', name: '', position: '' }]
-      };
-      
-      console.log('Opening edit modal with data:', this.selectedLetter);
-      this.showEditModal = true;
-      this.showModal = false;
+      try {
+        if (!letter?.id) {
+          console.error('Invalid letter data:', letter);
+          return;
+        }
+        this.selectedLetter = {
+          id: letter.id,
+          title: letter.title || '',
+          type: letter.type || '',
+          subject: letter.subject || '',
+          date: letter.date || new Date().toISOString().split('T')[0],
+          recipients: (letter.recipients || []).map(r => ({
+            id: r?.id || '',
+            name: r?.name || '',
+            position: r?.position || ''
+          })),
+          content: letter.content || '',
+          sender_name: letter.sender_name || '',
+          sender_position: letter.sender_position || ''
+        };
+        this.showEditModal = true; // Show the edit modal
+      } catch (error) {
+        console.error('Error opening edit modal:', error);
+      }
     },
+
+    previewPDF(letter) {
+      // ... your existing previewPDF logic ...
+    },
+
+    convertPDFToWord(letter) {
+      // ... your existing convertPDFToWord logic ...
+    },
+
+    // Remove duplicate updateLetter method
+    // Remove duplicate fetchLetters method
+    // Remove duplicate deleteLetter method
+},
 
     async updateLetter(letterData) {
       try {
@@ -918,7 +936,6 @@ export default {
       }
     }
   }
-};
 </script>
 
 

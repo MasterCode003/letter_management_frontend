@@ -34,7 +34,7 @@
     </nav>
 
     <div class="container mx-auto p-8">
-      <router-view></router-view>
+      <router-view class="content-wrapper"></router-view>
     </div>
   </div>
 </template>
@@ -52,5 +52,19 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   background-color: #f3f4f6;
+}
+
+/* Add these styles to handle formatted content */
+.content-wrapper {
+  white-space: pre-wrap;
+}
+
+.content-wrapper strong,
+.content-wrapper b {
+  font-weight: 700;
+}
+
+.content-wrapper p {
+  margin-bottom: 1em;
 }
 </style>
