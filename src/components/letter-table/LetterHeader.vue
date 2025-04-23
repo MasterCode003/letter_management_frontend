@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import apiClient from '../../../utils/apiClient'
+import apiClient from '../../utils/apiClient'  // Changed from '../../../utils/apiClient'
 
 export default {
   name: 'LetterHeader',
