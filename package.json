@@ -9,8 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@coreui/vue": "^5.4.1",
-    "@heroicons/vue": "^2.2.0",
+    "@coreui/coreui": "^4.3.2",
+    "@coreui/icons": "^3.0.1",
+    "@coreui/icons-vue": "file:2.0.0",
+    "@coreui/vue": "^4.10.2",
+    "@heroicons/vue": "^2.0.18",
     "@pdftron/webviewer": "^11.3.0",
     "@types/lodash": "^4.17.16",
     "@vueup/vue-quill": "^1.2.0",

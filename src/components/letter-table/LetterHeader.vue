@@ -57,36 +57,21 @@
 
 <script>
 export default {
+  name: 'LetterHeader',
   props: {
-    editMode: Boolean,
-    letterForm: Object,
-    errors: Object,
-    isSubmitting: Boolean
-  },
-  methods: {
-    handleBack() {
-      this.$emit('back');
+    editMode: {
+      type: Boolean,
+      default: false
     },
-    handleSubmit() {
-      this.$emit('submit');
+    title: {
+      type: String,
+      default: ''
     },
-    handleQuickSave() {
-      this.$emit('quick-save');
-    },
-    validateAndSave() {
-      // Basic validation before saving
-      if (!this.letterForm.title?.trim()) {
-        this.$emit('validation-error', 'Title is required');
-        return;
-      }
-      if (!this.letterForm.content?.trim()) {
-        this.$emit('validation-error', 'Content is required');
-        return;
-      }
-      
-      // Emit save event if validation passes
-      this.$emit('quick-save');
+    isSubmitting: {
+      type: Boolean,
+      default: false
     }
-  }
-};
+  },
+  emits: ['back', 'submit', 'quick-save']
+}
 </script>

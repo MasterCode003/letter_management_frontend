@@ -290,7 +290,7 @@ export default {
 
   async created() {
     try {
-      const response = await axios.get('http://192.168.100.11:8000/api/recipients', {
+      const response = await axios.get('http://192.168.5.68:8000/api/recipients', {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
