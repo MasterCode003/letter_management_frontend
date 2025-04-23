@@ -1,3 +1,4 @@
+@ -1,450 +0,0 @@
 <template>
   <div v-if="modelValue" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity"></div>

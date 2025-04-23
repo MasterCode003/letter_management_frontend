@@ -1,3 +1,4 @@
+@ -1,603 +0,0 @@
 @ -1,418 +0,0 @@
 <template>
   <transition name="fade">
@@ -590,8 +591,6 @@ export default {
 .ql-snow .ql-editor pre {
   white-space: pre-wrap;
 }
-</style>
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -601,3 +600,5 @@ export default {
 .fade-leave-to {
   opacity: 0;
 }
+</style>
+
