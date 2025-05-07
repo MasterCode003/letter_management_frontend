@@ -97,7 +97,7 @@
                     <select
                       v-model="recipient.id"
                       class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
-                      @change="updateRecipient(index, $event.target?.value)"
+                      @change="updateRecipient(index, $event.target.value)"
                     >
                       <option value="">Select Recipient</option>
                       <option 
@@ -159,8 +159,24 @@
                   <QuillEditor
                     v-model:content="formData.content"
                     contentType="html"
+                    :options="{
+                      modules: {
+                        toolbar: [
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'color': [] }, { 'background': [] }],
+                          [{ 'font': [] }],
+                          [{ 'align': [] }],
+                          [{ 'size': ['small', false, 'large', 'huge'] }],
+                          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                          ['blockquote', 'code-block'],
+                          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                          ['link', 'image'],
+                          ['clean']
+                        ]
+                      },
+                      theme: 'snow'
+                    }"
                     theme="snow"
-                    :options="editorOptions"
                     class="h-[300px]"
                   />
                 </div>
@@ -290,7 +306,7 @@ export default {
 
   async created() {
     try {
-      const response = await axios.get('http://192.168.5.68:8000/api/recipients', {
+      const response = await axios.get('http://192.168.5.34:8000/api/recipients', {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -311,11 +327,10 @@ export default {
 
   computed: {
     availableRecipients() {
-      // Ensure we always return an array
       return Array.isArray(this.recipientsList) 
         ? this.recipientsList.map(recipient => ({
             ...recipient,
-            id: recipient.id?.toString() || ''
+            id: recipient.id.toString() || ''
           }))
         : [];
     }
@@ -328,10 +343,8 @@ export default {
         if (newLetter) {
           this.formData = {
             ...newLetter,
-            // Format date for date picker
             date: newLetter.date ? new Date(newLetter.date).toISOString().split('T')[0] : '',
-            // Ensure recipients are properly formatted
-            recipients: newLetter.recipients?.length 
+            recipients: newLetter.recipients && newLetter.recipients.length 
               ? newLetter.recipients.map(r => ({
                   id: r.id || '',
                   name: r.name || '',
@@ -357,7 +370,6 @@ export default {
     },
 
     updateRecipient(index, recipientId) {
-      // Fix recipient lookup to use availableRecipients instead of props.recipients
       const selectedRecipient = this.availableRecipients.find(r => 
         r.id.toString() === recipientId.toString()
       );
@@ -389,13 +401,19 @@ export default {
           })).filter(r => r.id)
         };
 
-        let response;
-        if (this.editMode) {
-          response = await axios.put(`/letters/${this.letter.id}/`, formData);
-        } else {
-          response = await axios.post('/letters/', formData);
-        }
+        // Only use PUT method since this is an edit modal
+        const response = await axios.put(
+          `http://192.168.5.34:8000/api/letters/${this.letter.id}`, 
+          formData,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          }
+        );
 
+        this.$emit('refresh-letters'); // Emit event to refresh the letters list
         this.showSuccess = true;
         setTimeout(() => {
           this.showSuccess = false;
@@ -403,7 +421,9 @@ export default {
         }, 1500);
 
       } catch (error) {
-        console.error('Error submitting letter:', error);
+        console.error('Error updating letter:', error);
+        // Handle error appropriately
+        this.errors = error.response?.data?.errors || ['Failed to update letter'];
       } finally {
         this.isSubmitting = false;
       }
@@ -446,5 +466,29 @@ input, select, textarea {
 
 .recipient-remove-button:hover {
   background-color: #FEE2E2;
+}
+
+/* Quill Editor Styles */
+.ql-editor {
+  min-height: 200px;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.ql-editor p {
+  margin-bottom: 1em;
+}
+
+.ql-snow .ql-editor pre {
+  background-color: #f4f4f4;
+  border-radius: 3px;
+  padding: 5px 10px;
+  margin: 5px 0;
+}
+
+.ql-snow .ql-editor blockquote {
+  border-left: 4px solid #ccc;
+  padding-left: 16px;
+  margin: 5px 0;
 }
 </style>

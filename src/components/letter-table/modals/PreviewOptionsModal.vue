@@ -22,20 +22,20 @@
         </button>
         
         <button 
-          @click="handleConvertPDFToWord"
+          @click="handleExportWord"
           :disabled="isConverting"
           class="w-full py-2 px-4 flex items-center justify-center gap-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
         >
           <template v-if="isConverting">
             <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-            <span>Converting to Word...</span>
+            <span>Exporting to Word...</span>
           </template>
           <template v-else>
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
               <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
             </svg>
-            <span>Convert to Word</span>
+            <span>Export to Word</span>
           </template>
         </button>
       </div>
@@ -85,14 +85,14 @@ const handlePreview = async () => {
   }
 };
 
-const handleConvertPDFToWord = async () => {
+const handleExportWord = async () => {
   try {
     isConverting.value = true;
     await emit('convert-pdf-to-word', props.letter);
     emit('close');
   } catch (error) {
-    console.error('PDF to Word conversion error:', error);
-    alert('Unable to convert PDF to Word. Please try again later.');
+    console.error('PDF to Word export error:', error);
+    alert('Unable to export to Word. Please try again later.');
   } finally {
     isConverting.value = false;
   }

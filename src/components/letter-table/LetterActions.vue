@@ -58,7 +58,7 @@
     <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg flex items-center gap-3">
         <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
-        <span>Converting to Word...</span>
+        <span>Exporting to Word...</span>
       </div>
     </div>
   </div>
@@ -75,6 +75,7 @@ import {
 } from '@heroicons/vue/24/solid'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import PreviewOptionsModal from './modals/PreviewOptionsModal.vue'
+import apiClient from '@/utils/apiClient';
 
 export default {
   name: 'LetterActions',
@@ -112,45 +113,25 @@ export default {
         this.showPreviewModal = false;
         await this.$emit('convert-pdf-to-word', this.letter);
       } catch (error) {
-        console.error('Conversion error:', error);
+        console.error('Export error:', error);
         this.showErrorMessage = true;
-        this.errorMessage = 'Failed to convert PDF to Word. Please try again.';
+        this.errorMessage = 'Failed to export to Word. Please try again.';
       } finally {
         this.isConverting = false;
       }
     },
-    async handlePreviewPDF(letterId) {
+    async handlePreviewPDF() {
       try {
-        this.isLoading = true;
+        const response = await apiClient.get(`/letters/${this.letter.id}/preview`, {
+          responseType: 'blob'
+        });
         
-        // Add retry mechanism with timeout
-        const maxRetries = 3;
-        let retryCount = 0;
-        let response;
-        
-        while (retryCount < maxRetries) {
-          try {
-            response = await apiClient.get(`/letters/preview-pdf/${letterId}`, {
-              timeout: 10000, // 10 seconds timeout
-              responseType: 'blob'
-            });
-            break; // Success, exit retry loop
-          } catch (error) {
-            retryCount++;
-            if (retryCount === maxRetries) throw error;
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-          }
-        }
-
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         window.open(url, '_blank');
-        
       } catch (error) {
         console.error('PDF preview error:', error);
-        this.$toast.error('Failed to load PDF preview. Please try again later.');
-      } finally {
-        this.isLoading = false;
+        this.$emit('error', error.response.data.message || 'Failed to generate PDF preview');
       }
     },
     handleEdit() {

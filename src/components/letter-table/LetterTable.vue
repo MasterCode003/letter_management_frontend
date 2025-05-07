@@ -628,48 +628,33 @@ export default {
           throw new Error('Invalid letter ID');
         }
 
-        // Get the converted file directly with secure headers
-        const response = await apiClient.get(`/letters/${letter.id}/convert-to-word`, {
+        // Updated endpoint to use export endpoint
+        const response = await apiClient.get(`/letters/${letter.id}/export`, {
           responseType: 'blob',
           headers: {
-            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'Content-Security-Policy': "default-src 'self'; img-src 'self' blob: data:;"
+            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           }
         });
 
-        // Create secure blob URL
+        // Create and trigger download
         const blob = new Blob([response.data], {
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         });
         
-        // Use secure download method
-        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-          // For IE
-          window.navigator.msSaveOrOpenBlob(blob, `${letter.title || 'document'}_converted.docx`);
-        } else {
-          // For modern browsers
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.style.display = 'none';
-          link.href = url;
-          link.download = `${letter.title || 'document'}_converted.docx`;
-          
-          // Use secure context
-          document.body.appendChild(link);
-          link.click();
-          
-          // Clean up
-          setTimeout(() => {
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-          }, 100);
-        }
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${letter.title || 'letter'}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
 
-        return { success: true };
       } catch (error) {
-        console.error('Conversion error:', error);
-        alert('Failed to convert PDF to Word. Please try again.');
-        throw error;
+        console.error('Export error:', error);
+        alert('Failed to export document. Please try again.');
       } finally {
         this.isPreviewLoading = false;
       }
