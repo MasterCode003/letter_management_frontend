@@ -95,18 +95,37 @@
                       </div>
                     </div>
                     <!-- Template Field (right next to Type) -->
+                
+                    
+                   
                     <div class="flex items-center gap-4 ml-8">
                       <label class="font-medium w-24 text-lg">Template:</label>
-                      <select
-                        v-model="selectedTemplate"
-                        class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                        @change="clearError('template')"
-                      >
-                        <option value="">Select Template</option>
-                        <option v-for="template in templates" :key="template.id" :value="template.id">
-                          {{ template.name }}
-                        </option>
-                      </select>
+                      <div class="relative">
+                        <select
+                          v-model="selectedTemplate"
+                          class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
+                          @change="clearError('template')"
+                          :disabled="isTemplateLoading"
+                        >
+                          <option value="">Select Template</option>
+                          <option 
+                            v-for="template in templates" 
+                            :key="template.id" 
+                            :value="template.id"
+                          >
+                            {{ template.name }}
+                          </option>
+                        </select>
+                        <div 
+                          v-if="isTemplateLoading" 
+                          class="absolute inset-y-0 right-2 flex items-center pointer-events-none"
+                        >
+                          <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <!-- End Letter Type and Template row -->
@@ -141,8 +160,23 @@
                           {{ r.name }} - {{ r.position }}
                         </option>
                       </select>
-                      <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600">
-                        Selected: {{ recipient.name }} - {{ recipient.position }}
+                      <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600 flex items-center gap-2">
+                        <!-- Make name clickable -->
+                        <span
+                          class="cursor-pointer text-blue-600 underline"
+                          @click="showPdfPreviewButton(index)"
+                        >
+                          Selected: {{ recipient.name }} - {{ recipient.position }}
+                        </span>
+                        <!-- Show PDF Preview button if this recipient is selected for preview -->
+                        <button
+                          v-if="pdfPreviewIndex === index"
+                          @click="previewRecipientPdf(recipient)"
+                          type="button"
+                          class="ml-2 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                          Preview PDF
+                        </button>
                       </div>
                     </div>
                     <button
@@ -204,10 +238,12 @@
                         :class="{ 'border-red-500': errors.content }"
                         @update:content="onContentInput"
                       />
-                      <ValidationWarning v-if="errors.content" :message="errors.content" />
                       <div class="absolute inset-0 pointer-events-none rounded-lg ring-1 ring-inset ring-gray-200"></div>
                     </div>
-                    <ValidationWarning v-if="errors.content" :message="errors.content" />
+                    <!-- Improved single validation warning below the editor -->
+                    <div v-if="errors.content" class="flex justify-center mt-2">
+                      <ValidationWarning :message="errors.content" class="w-fit bg-yellow-50 border border-yellow-400 text-yellow-700 px-4 py-2 rounded shadow" />
+                    </div>
                   </div>
                 </div>
 
@@ -253,6 +289,7 @@
   <!-- Success Message Modal -->
   <SuccessMessageModal 
     v-if="showSuccess"
+    message="Letter saved successfully!"
     @close="closeModal"
   />
 
@@ -289,6 +326,49 @@
             class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
           >
             Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this after the Confirmation Modal -->
+  <!-- Save as Template Modal -->
+  <div v-if="showTemplateModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                Save as Template
+              </h3>
+              <div class="mt-2">
+                <input
+                  v-model="templateName"
+                  type="text"
+                  placeholder="Enter template name"
+                  class="w-full border rounded-md px-4 py-2"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button
+            type="button"
+            @click="confirmQuickSave"
+            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            @click="showTemplateModal = false"
+            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            No
           </button>
         </div>
       </div>
@@ -388,9 +468,13 @@ export default {
       } : { ...defaultForm },
       errors: {},
       showConfirmModal: false,
+      showTemplateModal: false,  // Add this line
       showSuccess: false,  // Keep this for controlling visibility
       recipientsList: [],
-      isSubmitting: false
+      isSubmitting: false,
+      // Add these lines:
+      templates: [], // List of templates (should be fetched from API if needed)
+      selectedTemplate: '', // Currently selected template ID
     }
   },
   computed: {
@@ -410,6 +494,10 @@ export default {
     try {
       await this.fetchCSRFToken();
       
+      // Add template fetching
+      const templatesResponse = await apiClient.get('/templates');
+      this.templates = templatesResponse.data.data || templatesResponse.data;
+
       if (this.letter && Object.keys(this.letter).length > 0) {
         this.editMode = true;
         const formattedRecipients = Array.isArray(this.letter.recipients) 
@@ -696,11 +784,16 @@ export default {
       if (!this.validateForm()) {
         return;
       }
-      
+      this.showTemplateModal = true;
+    },
+
+    async confirmQuickSave() {
       try {
         this.isSubmitting = true;
+        this.showTemplateModal = false;
+
         const formData = {
-          title: this.letterForm.title,
+          name: this.templateName,
           type: this.letterForm.type,
           subject: this.letterForm.subject,
           date: this.letterForm.date,
@@ -716,12 +809,31 @@ export default {
             }))
         };
 
-        const response = await apiClient.post('/letters', formData);
-        this.$emit('refresh-letters');
+        // Use your template store route
+        const response = await apiClient.post('/templates', formData);
+
+        // Adjust API response handling
+        const newTemplate = response.data?.data || response.data;
+        
+        // Update templates list reactively
+        this.templates = [
+          ...this.templates,
+          {
+            id: newTemplate.id,
+            name: newTemplate.name,
+            // Include other necessary template properties
+          }
+        ];
+
+        // Select the new template
+        this.selectedTemplate = newTemplate.id;
+
+        this.templateName = '';
         this.showSuccess = true;
+        setTimeout(() => this.closeModal(), 1500);
       } catch (error) {
-        console.error('Quick save error:', error);
-        this.errors.submit = error.response?.data?.message || 'Quick save failed';
+        console.error('Template save error:', error);
+        this.errors.submit = error.response?.data?.message || 'Template save failed';
       } finally {
         this.isSubmitting = false;
       }
@@ -731,8 +843,51 @@ export default {
       if (this.errors && this.errors[field]) {
         delete this.errors[field] // Changed from this.$delete to standard delete
       }
+    }, // <-- Add this comma
+    onContentInput() {
+      this.clearError('content');
+    },
+    async loadTemplate(templateId) {
+      try {
+        this.isTemplateLoading = true;
+        const response = await apiClient.get(`/templates/${templateId}`);
+        const template = response.data.data || response.data;
+        
+        this.letterForm = {
+          ...this.letterForm,
+          title: template.name,
+          type: template.type,
+          subject: template.subject,
+          date: this.formatDateForInput(template.date),
+          content: template.content,
+          sender_name: template.sender_name,
+          sender_position: template.sender_position,
+          recipients: template.recipients.map(r => ({
+            id: r.id,
+            name: r.name,
+            position: r.position
+          }))
+        };
+        
+        this.errors = {};
+      } catch (error) {
+        console.error('Error loading template:', error);
+        this.errors.submit = 'Failed to load template';
+      } finally {
+        this.isTemplateLoading = false;
+      }
+    },
+  }, // <-- end of methods
+
+  // Move watch here, as a sibling to methods:
+  watch: {
+    selectedTemplate(newVal) {
+      console.log('Selected template ID:', newVal);
+      if (newVal) {
+        this.loadTemplate(newVal);
+      }
     }
-  }
+  } // <-- Removed extra comma and fixed indentation
 }
 </script>
 
@@ -740,7 +895,6 @@ export default {
 .prose {
   width: 100%;
 }
-
 /* Add these styles for better Quill editor formatting */
 .ql-editor {
   font-size: 1rem;
@@ -779,3 +933,12 @@ export default {
   opacity: 0;
 }
 </style>
+
+// --- Add your methods here ---
+showPdfPreviewButton(index) {
+  this.pdfPreviewIndex = index;
+},
+previewRecipientPdf(recipient) {
+  // Placeholder: Replace with your actual PDF preview logic
+  alert(`Previewing PDF for: ${recipient.name} - ${recipient.position}`);
+  // You could emit an event or open a modal here
