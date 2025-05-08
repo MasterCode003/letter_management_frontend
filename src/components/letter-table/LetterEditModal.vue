@@ -90,17 +90,74 @@
                   </div>
                 </div>
                 <!-- Template Field (right next to Type) -->
+               
                 <div class="flex items-center gap-4 ml-8">
                   <label class="font-medium w-24 text-lg">Template:</label>
-                  <select
-                    v-model="selectedTemplate"
-                    class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
+                  <div class="relative">
+                    <select
+                      v-model="selectedTemplate"
+                      class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
+                      :disabled="isTemplateLoading"
+                    >
+                      <option value="">Select Template</option>
+                      <option v-for="template in templates" :key="template.id" :value="template.id">
+                        {{ template.name }}
+                      </option>
+                    </select>
+                    <div 
+                      v-if="isTemplateLoading" 
+                      class="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+                    >
+                      <div class="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
+                        <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="mt-2 text-gray-700 text-sm">Loading Template...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Recipients Section -->
+              <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                  <label class="font-medium w-24 text-lg">FOR:</label>
+                  <button
+                    type="button"
+                    @click="addRecipient"
+                    class="border rounded-md px-4 py-2 bg-gray-50 hover:bg-gray-100 text-base flex items-center gap-2"
                   >
-                    <option value="">Select Template</option>
-                    <option v-for="template in templates" :key="template.id" :value="template.id">
-                      {{ template.name }}
-                    </option>
-                  </select>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Recipient
+                  </button>
+                </div>
+              
+                <div v-for="(recipient, index) in formData.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                  <div class="flex-1">
+                    <select
+                      v-model="recipient.id"
+                      @change="updateRecipient(index, $event.target.value)"
+                      class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
+                    >
+                      <option value="">Select Recipient</option>
+                      <option v-for="r in recipientsList" :key="r.id" :value="r.id">
+                        {{ r.name }} - {{ r.position }}
+                      </option>
+                    </select>
+                  </div>
+                  <button
+                    v-if="formData.recipients.length > 1"
+                    @click="removeRecipient(index)"
+                    type="button"
+                    class="text-red-600 hover:text-red-800"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
               <!-- End Letter Type and Template row -->
@@ -228,7 +285,39 @@
         </div>
       </div>
     </div>
-  </div>
+    
+    <!-- Save as Template Modal -->
+    <div v-if="showTemplateModal" class="fixed inset-0 z-[60] overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div class="p-6 text-center">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Save as Template</h3>
+            <input
+              v-model="templateName"
+              type="text"
+              placeholder="Enter template name"
+              class="w-full border rounded-md px-4 py-2 mb-4"
+            />
+            <div class="flex justify-center gap-3">
+              <button
+                @click="confirmQuickSave"
+                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                Save
+              </button>
+              <button
+                @click="showTemplateModal = false"
+                class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> <!-- This closes your root v-if="modelValue" div -->
 </template>
 
 <script>
@@ -237,7 +326,6 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import axios from 'axios'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import { editorOptions } from './editorOptions';
-// Import ValidationWarning component
 import ValidationWarning from '@/components/common/ValidationWarning.vue';
 
 export default {
@@ -245,33 +333,26 @@ export default {
   components: {
     QuillEditor,
     SuccessMessageModal,
-    ValidationWarning // Register the component
+    ValidationWarning
   },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false
-    },
-    letter: {
-      type: Object,
-      default: () => ({})
-    },
-    recipients: {
-      type: Array,
-      default: () => []
-    },
-    editMode: {
-      type: Boolean,
-      default: false
-    }
+    modelValue: { type: Boolean, default: false },
+    letter: { type: Object, default: () => ({}) },
+    recipients: { type: Array, default: () => [] },
+    editMode: { type: Boolean, default: false }
   },
   data() {
     return {
       showConfirmModal: false,
       showSuccess: false,
       isSubmitting: false,
-      errors: [], // Initialize errors array
-      editorOptions: editorOptions, // Add this line
+      isTemplateLoading: false,
+      showTemplateModal: false,
+      templateName: '',
+      templates: [],
+      selectedTemplate: '',
+      errors: [],
+      editorOptions: editorOptions,
       formData: {
         title: '',
         type: '',
@@ -285,9 +366,9 @@ export default {
       recipientsList: []
     }
   },
-
   async created() {
     try {
+      // Fetch recipients
       const response = await axios.get('http://192.168.5.34:8000/api/recipients', {
         headers: {
           'Accept': 'application/json',
@@ -295,18 +376,17 @@ export default {
         },
         timeout: 15000
       });
-      
-      // Handle both direct array response and nested data property
       this.recipientsList = Array.isArray(response.data) 
         ? response.data 
         : response.data.data || [];
-        
+      // Fetch templates
+      const templatesResponse = await axios.get('http://192.168.5.34:8000/api/templates');
+      this.templates = templatesResponse.data.data || templatesResponse.data;
     } catch (error) {
-      console.error('Error fetching recipients:', error);
+      console.error('Error initializing component:', error);
       this.recipientsList = [];
     }
   },
-
   computed: {
     availableRecipients() {
       return Array.isArray(this.recipientsList) 
@@ -317,7 +397,6 @@ export default {
         : [];
     }
   },
-
   watch: {
     letter: {
       immediate: true,
@@ -338,19 +417,15 @@ export default {
       }
     }
   },
-
   methods: {
-    // Add these methods for recipient management
     addRecipient() {
       this.formData.recipients.push({ id: '', name: '', position: '' });
     },
-
     removeRecipient(index) {
       if (this.formData.recipients.length > 1) {
         this.formData.recipients.splice(index, 1);
       }
     },
-
     updateRecipient(index, recipientId) {
       const selectedRecipient = this.availableRecipients.find(r => 
         r.id.toString() === recipientId.toString()
@@ -373,7 +448,6 @@ export default {
       try {
         this.isSubmitting = true;
         this.showConfirmModal = false;
-
         const formData = {
           ...this.formData,
           recipients: this.formData.recipients.map(r => ({
@@ -382,8 +456,6 @@ export default {
             position: r.position
           })).filter(r => r.id)
         };
-
-        // Only use PUT method since this is an edit modal
         const response = await axios.put(
           `http://192.168.5.34:8000/api/letters/${this.letter.id}`, 
           formData,
@@ -394,83 +466,65 @@ export default {
             }
           }
         );
-
-        this.$emit('refresh-letters'); // Emit event to refresh the letters list
+        this.$emit('refresh-letters');
         this.showSuccess = true;
         setTimeout(() => {
           this.showSuccess = false;
           this.$emit('update:modelValue', false);
         }, 1500);
-
       } catch (error) {
         console.error('Error updating letter:', error);
-        // Handle error appropriately
         this.errors = error.response?.data?.errors || ['Failed to update letter'];
       } finally {
         this.isSubmitting = false;
       }
+    },
+    async loadTemplate(templateId) {
+      try {
+        this.isTemplateLoading = true;
+        const response = await apiClient.get(`/templates/${templateId}`);
+        const template = response.data.data || response.data;
+        this.formData = {
+          ...this.formData,
+          title: template.name,  // Map template name to title
+          type: template.type,
+          subject: template.subject,
+          content: template.content,
+          sender_name: template.sender_name,
+          sender_position: template.sender_position,
+          recipients: template.recipients.map(r => ({
+            id: r.id,
+            name: r.name,
+            position: r.position
+          }))
+        };
+      } catch (error) {
+        console.error('Error loading template:', error);
+        this.errors = error.response?.data?.errors || ['Failed to load template'];
+      } finally {
+        this.isTemplateLoading = false;
+      }
+    },
+    handleQuickSave() {
+      this.showTemplateModal = true;
+    },
+    async confirmQuickSave() {
+      try {
+        this.isSubmitting = true;
+        const response = await axios.post('http://192.168.5.34:8000/api/templates', {
+          name: this.templateName,
+          ...this.formData
+        });
+        this.templates.push(response.data.data);
+        this.selectedTemplate = response.data.data.id;
+        this.showTemplateModal = false;
+        this.templateName = '';
+      } catch (error) {
+        console.error('Error saving template:', error);
+      } finally {
+        this.isSubmitting = false;
+      }
     }
-  }
+  }  // Remove this extra closing brace
 }
 </script>
-
-<style scoped>
-/* CSS content only - no HTML */
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.3s ease-out;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-.modal-enter-to,
-.modal-leave-from {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* Add smooth transitions */
-button {
-  transition: all 0.2s ease-in-out;
-}
-
-input, select, textarea {
-  transition: border-color 0.2s ease-in-out;
-}
-
-.recipient-select:hover {
-  border-color: #3B82F6;
-}
-
-.recipient-remove-button:hover {
-  background-color: #FEE2E2;
-}
-
-/* Quill Editor Styles */
-.ql-editor {
-  min-height: 200px;
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-.ql-editor p {
-  margin-bottom: 1em;
-}
-
-.ql-snow .ql-editor pre {
-  background-color: #f4f4f4;
-  border-radius: 3px;
-  padding: 5px 10px;
-  margin: 5px 0;
-}
-
-.ql-snow .ql-editor blockquote {
-  border-left: 4px solid #ccc;
-  padding-left: 16px;
-  margin: 5px 0;
-}
-</style>
