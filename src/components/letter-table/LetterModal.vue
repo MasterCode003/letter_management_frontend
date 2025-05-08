@@ -478,6 +478,7 @@ export default {
       // Add these lines:
       templates: [], // List of templates (should be fetched from API if needed)
       selectedTemplate: '', // Currently selected template ID
+      isTemplateLoading: false, // <-- Add this line
     }
   },
   computed: {
