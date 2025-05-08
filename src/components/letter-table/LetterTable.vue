@@ -122,7 +122,7 @@
               @close="closeModal"
               @save-letter="handleLetterSaved"
               @update-letter="handleLetterSaved"
-              @refresh-letters="fetchLetters"
+              @refresh-letters="handleRefreshLetters"
             />
           </div>
         </div>
@@ -261,7 +261,7 @@ export default {
     },
     // In the computed section, update the filteredLetters method
     filteredLetters() {
-      return this.letters.filter(letter => {
+      let filtered = this.letters.filter(letter => {
         const matchesTitle = letter.title?.toLowerCase().includes(this.searchQuery.toLowerCase()) ?? false;
         const matchesSubject = letter.subject?.toLowerCase().includes(this.searchSubject.toLowerCase()) ?? false;
         const matchesType = this.selectedType ? letter.type === this.selectedType : true;
@@ -281,6 +281,21 @@ export default {
         
         return matchesTitle && matchesSubject && matchesType && matchesRecipient && matchesDateRange;
       });
+    
+      // Prefer sorting by created_at or id if available
+      filtered.sort((a, b) => {
+        // If created_at exists, use it
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        // Otherwise, fallback to id (assuming higher id is newer)
+        if (a.id && b.id) {
+          return b.id - a.id;
+        }
+        // Fallback to date
+        return new Date(b.date) - new Date(a.date);
+      });
+      return filtered;
     },
 
     displayedPages() {
@@ -422,13 +437,24 @@ export default {
       }
     },
 
-    // In updateLetter method - Remove the recipient validation
+    // In updateLetter method
     async updateLetter(letterData) {
       try {
-        if (!letterData.id) {
-          throw new Error('Letter ID is required for update');
+        // Add comprehensive validation
+        if (!letterData.id) throw new Error('Letter ID required');
+        
+        const requiredFields = {
+          title: letterData.title?.trim(),
+          type: letterData.type?.trim(),
+          subject: letterData.subject?.trim(),
+          content: letterData.content?.trim()
+        };
+        
+        for (const [field, value] of Object.entries(requiredFields)) {
+          if (!value) throw new Error(`${field} is required`);
         }
 
+        // Rest of the method remains the same
         // Ensure recipients are properly formatted with name/position
         const recipients = [];
         if (Array.isArray(letterData.recipients)) {
@@ -456,14 +482,14 @@ export default {
 
         const formattedData = {
           id: letterData.id,
-          title: letterData.title?.trim(),
-          subject: letterData.subject?.trim(),
-          type: letterData.type,
+          title: letterData.title.trim(),
+          subject: letterData.subject?.trim() || '',  // Provide default empty string
+          type: letterData.type || 'Business Letter',  // Provide default type
           date: this.formatDateForInput(letterData.date || new Date()),
-          recipients: recipients,  // Fix the comma placement here
-          content: letterData.content?.trim(),
-          sender_name: letterData.sender_name?.trim(),
-          sender_position: letterData.sender_position?.trim()
+          recipients: recipients,
+          content: letterData.content?.trim() || '',  // Provide default empty string
+          sender_name: letterData.sender_name?.trim() || '',  // Provide default empty string
+          sender_position: letterData.sender_position?.trim() || ''  // Provide default empty string
         };
 
         const response = await apiClient.put(`/letters/${letterData.id}`, formattedData);
@@ -482,52 +508,28 @@ export default {
     },
 
     // Keep only one fetchLetters
-    async fetchLetters() {
+    async handleRefreshLetters(params = {}) {
+      const query = new URLSearchParams({
+        sort: params.sort || '-updated_at',
+        page: params.page || 1
+      }).toString();
+    
       try {
-        const response = await apiClient.get('/letters', {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.data?.success && Array.isArray(response.data.data)) {
-          this.letters = response.data.data.map(letter => {
-            // Parse recipients from JSON string or use array directly
-            let parsedRecipients = [];
-            try {
-              if (letter.recipients) {
-                if (typeof letter.recipients === 'string') {
-                  parsedRecipients = JSON.parse(letter.recipients.replace(/\\"/g, '"'));
-                } else if (Array.isArray(letter.recipients)) {
-                  parsedRecipients = letter.recipients;
-                }
-              }
-            } catch (e) {
-              console.error('Error parsing recipients:', e);
-              parsedRecipients = [];
-            }
-
-            return {
-              ...letter,
-              date: letter.date || new Date().toISOString().split('T')[0],
-              type: letter.type || 'Unknown Type',
-              recipients: parsedRecipients
-            };
-          });
-          console.log('Processed letters:', this.letters);
-        } else {
-          this.letters = [];
+        const response = await apiClient.get(`/letters?${query}`);
+        this.letters = response.data.data;
+    
+        if (response.data.meta) {
+          this.pagination = response.data.meta;
+          this.currentPage = response.data.meta.current_page;
         }
       } catch (error) {
-        console.error('Letters fetch error:', error);
-        this.letters = [];
-        if (error.response?.data?.error?.includes('Table')) {
-          alert('Database tables are not set up. Please contact your system administrator.');
-        } else {
-          alert('Failed to fetch letters. Please try again later.');
-        }
+        console.error('Refresh error:', error);
+        alert('Failed to refresh letters');
       }
+    },
+
+    async fetchLetters() {
+      await this.handleRefreshLetters({ sort: '-updated_at' });
     },
 
     // Keep only one deleteLetter
@@ -659,15 +661,9 @@ export default {
         this.isPreviewLoading = false;
       }
     }
-  } // Remove the extra closing bracket and duplicate methods
-}
+  } // <-- This closes the methods object. No comma needed if this is the last property in export default.
+} // <-- This closes the export default object.
+
 </script>
 
 
-
-<!-- Replace the existing delete confirmation modal with this -->
-    <DeleteConfirmationModal
-      v-if="showDeleteConfirmModal"
-      @confirm="deleteLetter"
-      @cancel="showDeleteConfirmModal = false"
-    />

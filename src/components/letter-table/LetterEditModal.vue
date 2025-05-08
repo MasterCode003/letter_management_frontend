@@ -446,35 +446,44 @@ export default {
     handleSubmit() {
       this.showConfirmModal = true;
     },
+    // In confirmSubmit method
     async confirmSubmit() {
       try {
+        // Add validation check first
+        if (!this.validateForm()) {
+          return;
+        }
+    
         this.isSubmitting = true;
         this.showConfirmModal = false;
         
-        // Ensure all fields have at least empty string values
+        // Add null checks for all required fields
         const formData = {
           ...this.formData,
-          title: this.formData.title || '',
-          type: this.formData.type || '',
-          subject: this.formData.subject || '',
-          date: this.formData.date || '',
-          content: this.formData.content || '',
-          sender_name: this.formData.sender_name || '',
-          sender_position: this.formData.sender_position || '',
+          title: this.formData.title?.trim() || '',
+          type: this.formData.type?.trim() || 'Business Letter',
+          subject: this.formData.subject?.trim() || '',
+          date: this.formData.date || new Date().toISOString().split('T')[0],
+          content: this.formData.content?.trim() || '',
+          sender_name: this.formData.sender_name?.trim() || '',
+          sender_position: this.formData.sender_position?.trim() || '',
           recipients: this.formData.recipients
             .map(r => ({
-              id: r.id || '',
-              name: r.name || '',
-              position: r.position || ''
+              id: r.id || null,
+              name: (r.name || '').trim(),
+              position: (r.position || '').trim()
             }))
-            .filter(r => r.id)
+            .filter(r => r.name) // Filter out recipients without names
         };
     
         const response = await apiClient.put(
           `/letters/${this.letter.id}`, 
           formData
         );
-        this.$emit('refresh-letters');
+        this.$emit('refresh-letters', {
+          sort: '-updated_at',  // Sort by update time
+          page: 1
+        });
         this.showSuccess = true;
         setTimeout(() => {
           this.showSuccess = false;
@@ -500,8 +509,8 @@ export default {
         const response = await apiClient.get(`/templates/${templateId}`);
         const template = response.data.data || response.data;
     
-        // Update individual properties to maintain reactivity
-        this.letter.title = template.name;
+        // Fix: Use template.title instead of template.name
+        this.letter.title = template.title;  // Changed from template.name
         this.letter.type = template.type;
         this.letter.subject = template.subject;
         this.letter.date = this.formatDateForInput(template.date);

@@ -739,6 +739,7 @@ export default {
       this.showConfirmModal = true;
     },
 
+    // In confirmSubmit method
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
@@ -768,8 +769,8 @@ export default {
         } else {
           response = await apiClient.post('/letters', formData);
         }
-    
-        this.$emit('refresh-letters');
+
+        this.$emit('refresh-letters', { sortDescending: !this.editMode }); // Add sort parameter
         this.showSuccess = true;
         setTimeout(() => {
           this.closeModal();
