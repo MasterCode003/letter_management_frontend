@@ -73,7 +73,7 @@
                   <div class="flex flex-col">
                     <div class="relative">
                       <select
-                        v-model="formData.type"
+                        v-model="letter.type"
                         required
                         class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                       >
@@ -135,7 +135,7 @@
                   </button>
                 </div>
               
-                <div v-for="(recipient, index) in formData.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                <div v-for="(recipient, index) in letter.recipients" :key="index" class="flex items-center gap-4 ml-24">
                   <div class="flex-1">
                     <select
                       v-model="recipient.id"
@@ -149,7 +149,7 @@
                     </select>
                   </div>
                   <button
-                    v-if="formData.recipients.length > 1"
+                    v-if="letter.recipients.length > 1"
                     @click="removeRecipient(index)"
                     type="button"
                     class="text-red-600 hover:text-red-800"
@@ -165,7 +165,7 @@
                 <label class="font-medium w-24 text-lg">Subject:</label>
                 <div class="flex flex-col flex-1">
                   <input
-                    v-model="formData.subject"
+                    v-model="letter.subject"
                     type="text"
                     required
                     class="border rounded-md px-4 py-2"
@@ -178,7 +178,7 @@
                 <label class="font-medium w-24 text-lg">Date:</label>
                 <div class="flex flex-col">
                   <input
-                    v-model="formData.date"
+                    v-model="letter.date"
                     type="date"
                     required
                     class="w-[200px] border rounded-md px-4 py-2"
@@ -191,7 +191,7 @@
                 <label class="font-medium w-24 text-lg pt-2">Content:</label>
                 <div class="flex-1">
                   <QuillEditor
-                    v-model:content="formData.content"
+                    v-model:content="letter.content"
                     contentType="html"
                     :options="{
                       modules: {
@@ -224,7 +224,7 @@
                     <label class="text-base font-medium">Name</label>
                     <input
                       type="text"
-                      v-model="formData.sender_name"
+                      v-model="letter.sender_name"
                       placeholder="Enter sender's name"
                       class="w-full border rounded-md px-4 py-2"
                     />
@@ -234,7 +234,7 @@
                     <label class="text-base font-medium">Position/Title</label>
                     <input
                       type="text"
-                      v-model="formData.sender_position"
+                      v-model="letter.sender_position"
                       placeholder="Enter sender's position"
                       class="w-full border rounded-md px-4 py-2"
                     />
@@ -323,10 +323,10 @@
 <script>
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
-import axios from 'axios'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import { editorOptions } from './editorOptions';
 import ValidationWarning from '@/components/common/ValidationWarning.vue';
+import apiClient from '@/utils/apiClient';
 
 export default {
   name: 'LetterEditModal',
@@ -351,6 +351,7 @@ export default {
       templateName: '',
       templates: [],
       selectedTemplate: '',
+      isTemplateLoading: false,
       errors: [],
       editorOptions: editorOptions,
       formData: {
@@ -369,18 +370,12 @@ export default {
   async created() {
     try {
       // Fetch recipients
-      const response = await axios.get('http://192.168.5.34:8000/api/recipients', {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        timeout: 15000
-      });
+      const response = await apiClient.get('/recipients');
       this.recipientsList = Array.isArray(response.data) 
         ? response.data 
         : response.data.data || [];
       // Fetch templates
-      const templatesResponse = await axios.get('http://192.168.5.34:8000/api/templates');
+      const templatesResponse = await apiClient.get('/templates');
       this.templates = templatesResponse.data.data || templatesResponse.data;
     } catch (error) {
       console.error('Error initializing component:', error);
@@ -482,11 +477,12 @@ export default {
     async loadTemplate(templateId) {
       try {
         this.isTemplateLoading = true;
-        const response = await apiClient.get(`/templates/${templateId}`);
+        const response = await apiClient.get(`/api/templates/${templateId}`);
         const template = response.data.data || response.data;
-        this.formData = {
-          ...this.formData,
-          title: template.name,  // Map template name to title
+        
+        // Update letter data with template data
+        this.letter = {
+          ...this.letter,
           type: template.type,
           subject: template.subject,
           content: template.content,
@@ -498,33 +494,172 @@ export default {
             position: r.position
           }))
         };
+        
+        // Also update formData to keep it in sync
+        this.formData = {
+          ...this.formData,
+          type: template.type,
+          subject: template.subject,
+          content: template.content,
+          sender_name: template.sender_name,
+          sender_position: template.sender_position,
+          recipients: template.recipients.map(r => ({
+            id: r.id,
+            name: r.name,
+            position: r.position
+          }))
+        };
+        
+        this.errors = {};
       } catch (error) {
         console.error('Error loading template:', error);
-        this.errors = error.response?.data?.errors || ['Failed to load template'];
+        this.errors.template = 'Failed to load template';
       } finally {
         this.isTemplateLoading = false;
       }
     },
     handleQuickSave() {
+      if (!this.validateForm()) {
+        return;
+      }
       this.showTemplateModal = true;
     },
     async confirmQuickSave() {
       try {
         this.isSubmitting = true;
-        const response = await axios.post('http://192.168.5.34:8000/api/templates', {
-          name: this.templateName,
-          ...this.formData
-        });
-        this.templates.push(response.data.data);
-        this.selectedTemplate = response.data.data.id;
         this.showTemplateModal = false;
+    
+        const formData = {
+          name: this.templateName,
+          type: this.formData.type,
+          subject: this.formData.subject,
+          date: this.formData.date,
+          content: this.formData.content,
+          sender_name: this.formData.sender_name,
+          sender_position: this.formData.sender_position,
+          recipients: this.formData.recipients
+            .filter(r => r.id)
+            .map(r => ({
+              id: r.id,
+              name: r.name,
+              position: r.position
+            }))
+        };
+    
+        const response = await apiClient.post('/templates', formData);
+        const newTemplate = response.data?.data || response.data;
+        this.templates = [
+          ...this.templates,
+          {
+            id: newTemplate.id,
+            name: newTemplate.name,
+          }
+        ];
+    
+        this.selectedTemplate = newTemplate.id;
         this.templateName = '';
+        this.showSuccess = true;
+        setTimeout(() => {
+          this.showSuccess = false;
+          this.$emit('update:modelValue', false);
+        }, 1500);
       } catch (error) {
-        console.error('Error saving template:', error);
+        console.error('Template save error:', error);
+        this.errors.submit = error.response?.data?.message || 'Template save failed';
       } finally {
         this.isSubmitting = false;
       }
+    },
+    async loadTemplate(templateId) {
+      try {
+        this.isTemplateLoading = true;
+        const response = await apiClient.get(`/templates/${templateId}`);
+        const template = response.data.data || response.data;
+        
+        this.formData = {
+          ...this.formData,
+          title: template.name,
+          type: template.type,
+          subject: template.subject,
+          date: this.formatDateForInput(template.date),
+          content: template.content,
+          sender_name: template.sender_name,
+          sender_position: template.sender_position,
+          recipients: template.recipients.map(r => ({
+            id: r.id,
+            name: r.name,
+            position: r.position
+          }))
+        };
+        
+        this.errors = {};
+      } catch (error) {
+        console.error('Error loading template:', error);
+        this.errors.submit = 'Failed to load template';
+      } finally {
+        this.isTemplateLoading = false;
+      }
+    },
+    validateForm() {
+      this.errors = {};
+      let isValid = true;
+    
+      if (!this.formData.title?.trim()) {
+        this.errors.title = 'Title is required';
+        isValid = false;
+      }
+    
+      if (!this.formData.type?.trim()) {
+        this.errors.type = 'Type is required';
+        isValid = false;
+      }
+    
+      if (!this.formData.subject?.trim()) {
+        this.errors.subject = 'Subject is required';
+        isValid = false;
+      }
+    
+      if (!this.formData.date) {
+        this.errors.date = 'Date is required';
+        isValid = false;
+      }
+    
+      if (!this.formData.content?.trim()) {
+        this.errors.content = 'Content is required';
+        isValid = false;
+      }
+    
+      if (!this.formData.sender_name?.trim()) {
+        this.errors.sender_name = 'Sender name is required';
+        isValid = false;
+      }
+    
+      if (!this.formData.sender_position?.trim()) {
+        this.errors.sender_position = 'Sender position is required';
+        isValid = false;
+      }
+    
+      const hasEmptyRecipients = this.formData.recipients.some(r => !r.id);
+      if (hasEmptyRecipients) {
+        this.errors.recipients = 'All recipients must be selected';
+        isValid = false;
+      }
+    
+      return isValid;
+    },
+    
+    formatDateForInput(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
     }
-  }  // Remove this extra closing brace
+  },
+  watch: {
+    selectedTemplate(newVal) {
+      if (newVal) {
+        this.loadTemplate(newVal);
+      }
+    }
+  },
 }
 </script>
