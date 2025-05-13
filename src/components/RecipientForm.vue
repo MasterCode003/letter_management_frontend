@@ -102,7 +102,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import axios from 'axios'
-import { debounce } from 'lodash-es' // Changed to lodash-es for better TypeScript support
+import { debounce } from 'lodash-es' // Using ES modules version of lodash to avoid casing issues
 
 interface RecipientForm {
   name: string

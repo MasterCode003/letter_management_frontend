@@ -8,13 +8,13 @@
           <!-- Header with gradient -->
           <div class="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4 border-b z-10">
             <div class="flex items-center justify-between">
-              <h2 class="text-2xl font-bold text-white">{{ editMode ? 'Edit Letter' : 'New Letter' }}</h2>
+              <h2 class="text-2xl font-bold text-white">Edit Letter</h2>
               
               <!-- Title input centered with white background -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
                   <input
-                    v-model="letterForm.title"
+                    v-model="letter.title"
                     :class="{'border-red-500': errors.title}"
                     type="text"
                     required
@@ -47,7 +47,7 @@
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  {{ editMode ? 'Update' : 'Save' }}
+                  Update
                 </button>
                 <button
                   type="button"
@@ -59,7 +59,7 @@
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v14l7-7 7 7V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/>
                   </svg>
-                  Save as Template
+                  {{ editMode ? 'Update Template' : 'Save as Template' }}
                 </button>
               </div>
             </div>
@@ -78,7 +78,7 @@
                     <div class="flex flex-col">
                       <div class="relative">
                         <select
-                          v-model="letterForm.type"
+                          v-model="letter.type"
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                           @change="clearError('type')"
@@ -201,7 +201,7 @@
                   <label class="font-medium w-24 text-lg">Subject:</label>
                   <div class="flex flex-col flex-1">
                     <input
-                      v-model="letterForm.subject"
+                      v-model="letter.subject"
                       type="text"
                       required
                       class="border rounded-md px-4 py-2"
@@ -217,7 +217,7 @@
                   <label class="font-medium w-24 text-lg">Date:</label>
                   <div class="flex flex-col">
                     <input
-                      v-model="letterForm.date"
+                      v-model="letter.date"
                       type="date"
                       required
                       class="w-[200px] border rounded-md px-4 py-2"
@@ -234,7 +234,7 @@
                   <div class="flex-1">
                     <div class="relative">
                       <QuillEditor
-                        v-model:content="letterForm.content"
+                        v-model:content="letter.content"
                         contentType="html"
                         :options="editorOptions"
                         class="h-[350px] min-h-[200px] border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all"
@@ -250,29 +250,35 @@
                   </div>
                 </div>
 
-                <!-- Sender Information -->
-                <div class="mt-8 pt-6 border-t">
-                  <h3 class="font-medium text-lg mb-4">Sender's Information:</h3>
-                  <div class="grid grid-cols-2 gap-6">
-                    <div class="flex flex-col space-y-2">
-                      <label class="text-base font-medium">Name</label>
+                <!-- Sender Information section -->
+                <div class="space-y-4 mt-8 pt-6 border-t">
+                  <h3 class="font-medium text-lg">Sender Information</h3>
+                  
+                  <!-- Sender Name -->
+                  <div class="flex items-center gap-4">
+                    <label class="font-medium w-24 text-lg">Name:</label>
+                    <div class="flex flex-col flex-1">
                       <input
+                        v-model="letter.sender_name"
                         type="text"
-                        v-model="letterForm.sender_name"
-                        placeholder="Enter sender's name"
-                        class="w-full border rounded-md px-4 py-2"
+                        required
+                        class="border rounded-md px-4 py-2"
                         :class="{ 'border-red-500': errors.sender_name }"
                         @input="clearError('sender_name')"
                       />
                       <ValidationWarning v-if="errors.sender_name" :message="errors.sender_name" />
                     </div>
-                    <div class="flex flex-col space-y-2">
-                      <label class="text-base font-medium">Position/Title</label>
+                  </div>
+                  
+                  <!-- Sender Position -->
+                  <div class="flex items-center gap-4">
+                    <label class="font-medium w-24 text-lg">Position:</label>
+                    <div class="flex flex-col flex-1">
                       <input
+                        v-model="letter.sender_position"
                         type="text"
-                        v-model="letterForm.sender_position"
-                        placeholder="Enter sender's position"
-                        class="w-full border rounded-md px-4 py-2"
+                        required
+                        class="border rounded-md px-4 py-2"
                         :class="{ 'border-red-500': errors.sender_position }"
                         @input="clearError('sender_position')"
                       />
@@ -284,11 +290,10 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </div> <!-- End .bg-white rounded-xl ... -->
+      </div> <!-- End .flex.items-center.justify-center.min-h-screen.p-4 -->
   </transition>
 
-  <!-- Add this right before the closing </template> tag -->
   <!-- Success Message Modal -->
   <SuccessMessageModal 
     v-if="showSuccess"
@@ -305,11 +310,11 @@
           <div class="sm:flex sm:items-start">
             <div class="mt-3 text-center sm:mt-0 sm:text-left">
               <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                Confirm {{ editMode ? 'Update' : 'Save' }}
+                Confirm Update
               </h3>
               <div class="mt-2">
                 <p class="text-sm text-gray-500">
-                  Are you sure you want to {{ editMode ? 'update' : 'save' }} this letter?
+                  Are you sure you want to update this letter?
                 </p>
               </div>
             </div>
@@ -391,7 +396,7 @@ import SuccessMessageModal from './modals/SuccessMessageModal.vue';
 import ValidationWarning from '@/components/common/ValidationWarning.vue';
 
 export default {
-  name: 'LetterModal',
+  name: 'LetterEditModal',
   components: {
     QuillEditor,
     SuccessMessageModal,
@@ -412,16 +417,7 @@ export default {
       default: false
     }
   },
-  emits: [
-    'update:modelValue',
-    'close',
-    'save-letter',
-    'update-letter',
-    'refresh-letters',
-    'update:editMode',
-    'save', // Add this line
-    'error' // Add this line if you're using error events
-  ],
+  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode'],
   data() {
     const defaultForm = {
       title: '',
@@ -431,7 +427,8 @@ export default {
       recipients: [{ id: '', name: '', position: '' }],
       content: '',
       sender_name: '',
-      sender_position: ''
+      sender_position: '',
+      pdfPreviewIndex: null // Add index tracking for PDF preview button
     };
 
     return {
@@ -507,7 +504,10 @@ export default {
     try {
       await this.fetchCSRFToken();
       
-      // Add template fetching
+      // Fetch recipients first
+      await this.fetchRecipients();
+      
+      // Then fetch templates
       const templatesResponse = await apiClient.get('/templates');
       this.templates = templatesResponse.data.data || templatesResponse.data;
 
@@ -552,10 +552,8 @@ export default {
   methods: {
     async fetchCSRFToken() {
       try {
-        const response = await apiClient.get('/sanctum/csrf-cookie', {
-          baseURL: 'http://192.168.5.94:8000' // Updated IP address
-        });
-        
+        const response = await apiClient.get('/sanctum/csrf-cookie');
+        // Remove the baseURL parameter completely
         if (!response) {
           throw new Error('No response from server');
         }
@@ -574,17 +572,16 @@ export default {
       try {
         await this.fetchCSRFToken();
         
-        // Fetch both recipients and templates
-        await Promise.all([
-          this.fetchRecipients(),
-          this.fetchTemplates()
-        ]);
+        // Add template fetching
+        const templatesResponse = await apiClient.get('/templates');
+        this.templates = templatesResponse.data.data || templatesResponse.data;
 
         if (this.letter && Object.keys(this.letter).length > 0) {
-          this.editMode = true;
+          // Instead of setting editMode directly, emit an event
+          this.$emit('update:editMode', true);
+          
           const formattedRecipients = Array.isArray(this.letter.recipients) 
             ? this.letter.recipients.map(r => {
-                // Handle both object and ID formats
                 if (typeof r === 'object') {
                   return {
                     id: r.id || '',
@@ -592,7 +589,6 @@ export default {
                     position: r.position || ''
                   };
                 } else {
-                  // If it's just an ID, we'll populate name/position after fetching recipients
                   return {
                     id: r,
                     name: '',
@@ -612,10 +608,9 @@ export default {
             recipients: formattedRecipients
           };
         }
-        this.fetchRecipients();
+        await this.fetchRecipients();
       } catch (error) {
         console.error('Component initialization error:', error);
-        this.$emit('error', error.message);
         this.closeModal();
       }
     },  // Add comma here
@@ -645,52 +640,175 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        // Match the API response structure
-        this.recipientsList = response.data.data;
+        // Update to match your API response structure
+        this.recipientsList = response.data.data || response.data;
         
         // Update existing recipients with complete data
-        if (this.letterForm.recipients) {
-          this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
-            const found = this.recipientsList.find(r => r.id === recipient.id);
-            return found ? {
-              id: found.id,
-              name: found.name,
-              position: found.position
-            } : recipient;
-          });
-        }
+        this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
+          const found = this.recipientsList.find(r => r.id == recipient.id);
+          return found ? {
+            id: found.id,
+            name: found.name,
+            position: found.position
+          } : recipient;
+        });
       } catch (error) {
         console.error('Error fetching recipients:', error);
         this.recipientsList = [];
       }
     },
+    updateRecipient(index, recipientId) {
+      if (!recipientId) {
+        this.letterForm.recipients[index] = { id: '', name: '', position: '' };
+        return;
+      }
+      
+      const selectedRecipient = this.recipientsList.find(r => 
+        r.id === parseInt(recipientId)
+      );
+      
+      if (selectedRecipient) {
+        // Replace this.$set with direct assignment and array copy
+        this.letterForm.recipients = [
+          ...this.letterForm.recipients.slice(0, index),
+          {
+            id: selectedRecipient.id,
+            name: selectedRecipient.name,
+            position: selectedRecipient.position
+          },
+          ...this.letterForm.recipients.slice(index + 1)
+        ];
+      }
+      this.clearError('recipients');
+    },  // Add comma here
+    handleBack() {
+      // Reset form and close modal
+      this.errors = {};
+      this.letterForm = {
+        title: '',
+        type: '',
+        subject: '',
+        date: new Date().toISOString().split('T')[0],
+        recipients: [{ id: '', name: '', position: '' }],
+        content: '',
+        sender_name: '',
+        sender_position: ''
+      };
+      this.closeModal();
+    },
+    validateForm() {
+      this.errors = {};
+      let isValid = true;
 
-    async loadTemplate(templateId) {
+      // Validate title
+      if (!this.letterForm.title?.trim()) {
+        this.errors.title = 'Title is required';
+        isValid = false;
+      }
+
+      // Validate type
+      if (!this.letterForm.type?.trim()) {
+        this.errors.type = 'Type is required';
+        isValid = false;
+      }
+
+      // Validate subject
+      if (!this.letterForm.subject?.trim()) {
+        this.errors.subject = 'Subject is required';
+        isValid = false;
+      }
+
+      // Validate date
+      if (!this.letterForm.date) {
+        this.errors.date = 'Date is required';
+        isValid = false;
+      }
+
+      // Validate content
+      if (!this.letterForm.content?.trim()) {
+        this.errors.content = 'Content is required';
+        isValid = false;
+      }
+
+      // Validate sender info
+      if (!this.letterForm.sender_name?.trim()) {
+        this.errors.sender_name = 'Sender name is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.sender_position?.trim()) {
+        this.errors.sender_position = 'Sender position is required';
+        isValid = false;
+      }
+
+      // Validate recipients
+      const hasEmptyRecipients = this.letterForm.recipients.some(r => !r.id);
+      if (hasEmptyRecipients) {
+        this.errors.recipients = 'All recipients must be selected';
+        isValid = false;
+      }
+
+      return isValid;
+    },
+
+    handleSubmit() {
+      if (!this.validateForm()) {
+        return;
+      }
+      // Show confirmation modal instead of direct submission
+      this.showConfirmModal = true;
+    },
+
+    // In confirmSubmit method
+    async confirmSubmit() {
       try {
-        this.isTemplateLoading = true;
-        const response = await apiClient.get(`/templates/${templateId}`);
-        const template = response.data.data;
+        this.isSubmitting = true;
+        this.showConfirmModal = false;
         
-        if (template) {
-          // Update form with template data
-          this.letterForm = {
-            ...this.letterForm,
-            type: template.type,
-            subject: template.subject,
-            content: template.content,
-            recipients: template.recipients?.map(r => ({
+        const formData = {
+          title: this.letterForm.title,
+          type: this.letterForm.type,
+          subject: this.letterForm.subject,
+          date: this.letterForm.date,
+          content: this.letterForm.content,
+          sender_name: this.letterForm.sender_name,
+          sender_position: this.letterForm.sender_position,
+          recipients: this.letterForm.recipients
+            .filter(r => r.id)
+            .map(r => ({
               id: r.id,
               name: r.name,
               position: r.position
-            })) || []
-          };
+            }))
+        };
+    
+        let response;
+        if (this.editMode) {
+          response = await apiClient.put(`/letters/${this.letter.id}`, formData);
+        } else {
+          response = await apiClient.post('/letters', formData);
         }
+
+        this.$emit('refresh-letters', { sortDescending: !this.editMode }); // Add sort parameter
+        this.showSuccess = true;
+        setTimeout(() => {
+          this.closeModal();
+        }, 1500);
+        
       } catch (error) {
-        console.error('Error loading template:', error);
-        this.errors.template = 'Failed to load template';
+        console.error('Error submitting letter:', error);
+        this.errors = error.response?.data?.errors || {};
+        this.errors.submit = error.response?.data?.message || 'Failed to save letter';
       } finally {
-        this.isTemplateLoading = false;
+        this.isSubmitting = false;
       }
+    },  // <-- Add this comma
+    
+    async handleQuickSave() {
+      if (!this.validateForm()) {
+        return;
+      }
+      this.showTemplateModal = true;
     },
 
     async confirmQuickSave() {
@@ -702,7 +820,10 @@ export default {
           name: this.templateName,
           type: this.letterForm.type,
           subject: this.letterForm.subject,
+          date: this.letterForm.date,
           content: this.letterForm.content,
+          sender_name: this.letterForm.sender_name,
+          sender_position: this.letterForm.sender_position,
           recipients: this.letterForm.recipients
             .filter(r => r.id)
             .map(r => ({
@@ -712,36 +833,31 @@ export default {
             }))
         };
 
-        let response;
-        if (this.selectedTemplate) {
-          // Update existing template
-          response = await apiClient.put(`/templates/${this.selectedTemplate}`, formData);
-        } else {
-          // Create new template
-          response = await apiClient.post('/templates', formData);
-        }
+        // Change from POST to PUT
+        const response = await apiClient.put(`/templates/${this.selectedTemplate}`, formData);
         
-        const template = response.data.data;
+        // Adjust API response handling
+        const newTemplate = response.data?.data || response.data;
         
-        // Update templates list
-        if (this.selectedTemplate) {
-          this.templates = this.templates.map(t => 
-            t.id === template.id ? template : t
-          );
-        } else {
-          this.templates.push(template);
-        }
+        // Update templates list reactively
+        this.templates = [
+          ...this.templates,
+          {
+            id: newTemplate.id,
+            name: newTemplate.name,
+            // Include other necessary template properties
+          }
+        ];
+
+        // Select the new template
+        this.selectedTemplate = newTemplate.id;
 
         this.templateName = '';
-        this.selectedTemplate = template.id;
         this.showSuccess = true;
-        
-        setTimeout(() => {
-          this.showSuccess = false;
-        }, 1500);
+        setTimeout(() => this.closeModal(), 1500);
       } catch (error) {
         console.error('Template save error:', error);
-        this.errors.template = error.response?.data?.message || 'Failed to save template';
+        this.errors.submit = error.response?.data?.message || 'Template save failed';
       } finally {
         this.isSubmitting = false;
       }
@@ -759,25 +875,17 @@ export default {
       try {
         this.isTemplateLoading = true;
         const response = await apiClient.get(`/templates/${templateId}`);
-        const template = response.data.data;
+        // Update to match your template response structure
+        const template = response.data.data || response.data;
         
-        this.letterForm = {
-          ...this.letterForm,
-          title: template.name,
-          type: template.type,
-          subject: template.subject,
-          date: this.formatDateForInput(template.date),
-          content: template.content,
-          sender_name: template.sender_name,
-          sender_position: template.sender_position,
-          recipients: template.recipients.map(r => ({
-            id: r.id,
-            name: r.name,
-            position: r.position
-          }))
-        };
+        // Clear existing recipients before applying template
+        this.letterForm.recipients = template.recipients.map(r => ({
+          id: r.id,
+          name: r.name,
+          position: r.position
+        }));
         
-        this.errors = {};
+        // Rest of the template loading logic remains the same
       } catch (error) {
         console.error('Error loading template:', error);
         this.errors.submit = 'Failed to load template';
@@ -849,4 +957,3 @@ showPdfPreviewButton(index) {
 previewRecipientPdf(recipient) {
   // Placeholder: Replace with your actual PDF preview logic
   alert(`Previewing PDF for: ${recipient.name} - ${recipient.position}`);
-  // You could emit an event or open a modal here

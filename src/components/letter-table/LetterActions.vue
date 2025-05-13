@@ -122,16 +122,44 @@ export default {
     },
     async handlePreviewPDF() {
       try {
-        const response = await apiClient.get(`/letters/${this.letter.id}/preview`, {
-          responseType: 'blob'
+        if (!this.letter?.id) {
+          throw new Error('No letter selected');
+        }
+
+        const response = await apiClient.get(`/api/letters/${this.letter.id}/preview`, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'application/pdf'
+          },
+          baseURL: 'http://192.168.5.94:8000'
         });
-        
+
+        // Add response validation
+        if (response.status !== 200) {
+          console.error('Unexpected response:', response);
+          throw new Error(`Server returned status ${response.status}`);
+        }
+
+        // Verify we received PDF content
+        if (!response.headers['content-type'].includes('application/pdf')) {
+          console.warn('Received non-PDF response:', response.headers, response.data);
+          throw new Error('Invalid content type received from server');
+        }
+
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         window.open(url, '_blank');
       } catch (error) {
-        console.error('PDF preview error:', error);
-        this.$emit('error', error.response.data.message || 'Failed to generate PDF preview');
+        console.error('PDF preview error:', {
+          message: error.message,
+          response: error.response?.data,
+          config: error.config
+        });
+        this.errorMessage = error.response?.data?.message || 
+                         error.response?.data?.error ||
+                         error.message || 
+                         'Failed to generate PDF preview. Please try again.';
+        this.showErrorMessage = true;
       }
     },
     handleEdit() {
