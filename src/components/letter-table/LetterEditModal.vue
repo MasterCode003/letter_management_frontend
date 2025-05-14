@@ -150,7 +150,7 @@
                     </button>
                   </div>
 
-                  <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                  <div v-for="(recipient, index) in letter.recipients" :key="index" class="flex items-center gap-4 ml-24">
                     <div class="flex-1">
                       <select
                         v-model="recipient.id"
@@ -385,7 +385,6 @@
 </template>
 
 <script>
-import LetterHeader from './LetterHeader.vue';
 // Change this line:
 import apiClient from '@/utils/apiClient'; // Using default import of named import
 
@@ -400,7 +399,6 @@ export default {
   components: {
     QuillEditor,
     SuccessMessageModal,
-    LetterHeader,
     ValidationWarning // Register the component
   },
   props: {
@@ -513,7 +511,8 @@ export default {
       this.templates = templatesResponse.data.data || templatesResponse.data;
 
       if (this.letter && Object.keys(this.letter).length > 0) {
-        this.editMode = true;
+        // Instead of mutating prop directly
+        this.$emit('update:editMode', true); // Change this line
         const formattedRecipients = Array.isArray(this.letter.recipients) 
           ? this.letter.recipients.map(r => {
               // Handle both object and ID formats

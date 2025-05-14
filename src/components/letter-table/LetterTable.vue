@@ -119,6 +119,7 @@
             <LetterModal
               v-model="showModal"
               :letter="selectedLetter"
+              :available-recipients="availableRecipients"
               @save-letter="handleSaveLetter"
               @update-letter="handleUpdateLetter"
               @refresh-letters="fetchLetters"
@@ -185,6 +186,8 @@
         sender_name: '',
         sender_position: ''
       }"
+      :edit-mode="editMode"
+      @update:edit-mode="val => editMode = val"
       @refresh-letters="fetchLetters"
       @close="resetSelection"
     />
@@ -464,14 +467,7 @@ export default {
           if (!value) throw new Error(`${field} is required`);
         }
 
-        // Remove this initial recipients declaration:
-        // const recipients = [];
-        // if (Array.isArray(letterData.recipients)) {
-        //   for (const recipient of letterData.recipients) {
-        //     ...
-        //   }
-        // }
-
+    
         // Keep only this single declaration:
         const recipients = letterData.recipients
           .filter(r => r !== null)
