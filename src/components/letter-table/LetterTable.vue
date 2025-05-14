@@ -172,12 +172,38 @@
     </div>
 
     <!-- Update the LetterEditModal component usage -->
+    // In the template section, update the LetterEditModal usage:
     <LetterEditModal
       v-model="showEditModal"
-      :letter="selectedLetter"
-      :recipients="recipients"
-      @save-letter="handleLetterSaved"  
+      :letter="selectedLetter || { 
+        title: '',
+        type: '',
+        subject: '',
+        date: new Date().toISOString().split('T')[0],
+        recipients: [],
+        content: '',
+        sender_name: '',
+        sender_position: ''
+      }"
+      @refresh-letters="fetchLetters"
+      @close="resetSelection"
     />
+    
+    // In methods, update the handleNewLetterClick:
+    handleNewLetterClick() {
+      this.showModal = true;
+      this.selectedLetter = null;
+      this.$nextTick(() => {
+        this.showEditModal = true;
+      });
+    },
+    
+    // Update the resetSelection method:
+    resetSelection() {
+      this.selectedLetter = null;
+      this.showEditModal = false;
+      this.showModal = false;
+    },
   </div>
 </template>
 

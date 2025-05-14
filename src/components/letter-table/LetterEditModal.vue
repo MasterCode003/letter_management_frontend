@@ -414,7 +414,7 @@ export default {
     },
     editMode: {
       type: Boolean,
-      default: false
+      required: true  // If parent component must provide this
     }
   },
   emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode'],
