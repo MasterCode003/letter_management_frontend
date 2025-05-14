@@ -11,6 +11,7 @@
               <h2 class="text-2xl font-bold text-white">Edit Letter</h2>
               
               <!-- Title input centered with white background -->
+              <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
                   <input
@@ -77,14 +78,18 @@
                     <label class="font-medium w-24 text-lg">Type:</label>
                     <div class="flex flex-col">
                       <div class="relative">
+                        <!-- In the type select element -->
                         <select
-                          v-model="letter.type"
+                          v-model="letterForm.type"
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                          @change="clearError('type')"
+                          @change="handleTypeChange"
                         >
-                          <option value="Memo">Memo</option>
-                          <option value="Business Letter">Business Letter</option>
+                          <option value="" disabled>Select Type</option>
+                          <option value="memo">Memo</option>
+                          <option value="endorsement">Endorsement</option>
+                          <option value="invitation_meeting">Invitation Meeting</option>
+                          <option value="letter_to_admin">Letter to Admin</option>
                         </select>
                         <ValidationWarning v-if="errors.type" :message="errors.type" />
                         <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -847,6 +852,20 @@ export default {
         this.isTemplateLoading = false;
       }
     },
+    // Update validateForm method
+    validateForm() {
+      this.errors = {};
+      let isValid = true;
+    
+    // Validate type with specific values
+    const validTypes = ['memo', 'endorsement', 'invitation_meeting', 'letter_to_admin'];
+    if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
+      this.errors.type = 'Please select a valid type';
+      isValid = false;
+    }
+    
+      return isValid;
+    },
   }, // <-- end of methods
 
   // Move watch here, as a sibling to methods:
@@ -904,10 +923,24 @@ export default {
 }
 </style>
 
-// --- Add your methods here ---
+<!-- Move the style block to the root level, after the </script> tag -->
+<style scoped>
+.type-memo {
+  @apply text-blue-600;
+}
+.type-endorsement {
+  @apply text-green-600;
+}
+.type-invitation_meeting {
+  @apply text-purple-600;
+}
+.type-letter_to_admin {
+  @apply text-orange-600;
+}
+</style>
+
 showPdfPreviewButton(index) {
   this.pdfPreviewIndex = index;
 },
 previewRecipientPdf(recipient) {
   // Placeholder: Replace with your actual PDF preview logic
-  alert(`Previewing PDF for: ${recipient.name} - ${recipient.position}`);
