@@ -11,10 +11,11 @@
               <h2 class="text-2xl font-bold text-white">New Letter</h2>  <!-- Changed from "Edit Letter" -->
               
               <!-- Title input centered with white background -->
+              <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
                   <input
-                    v-model="letterForm.title"
+                    v-model="letterForm.title"  
                     :class="{'border-red-500': errors.title}"
                     type="text"
                     required
@@ -78,8 +79,10 @@
                     <div class="flex flex-col">
                       <div class="relative">
                         <!-- In the type select element -->
+                        
+                     
                         <select
-                          v-model="letterForm.type"
+                          v-model="letterForm.type" 
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                           @change="clearError('type')"
@@ -154,7 +157,7 @@
                     </button>
                   </div>
 
-                  <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                  <div v-for="(recipient, index) in letterForm.recipients" :key="index">  <!-- Change from letter.recipients -->
                     <div class="flex-1">
                       <select
                         v-model="recipient.id"
@@ -421,6 +424,7 @@ export default {
     }
   },
   emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode'],
+  // In the data() function, add pdfPreviewIndex
   data() {
     const defaultForm = {
       title: '',
@@ -430,7 +434,8 @@ export default {
       recipients: [{ id: '', name: '', position: '' }],
       content: '',
       sender_name: '',
-      sender_position: ''
+      sender_position: '',
+      pdfPreviewIndex: null // Add index tracking for PDF preview button
     };
 
     return {
@@ -482,6 +487,7 @@ export default {
       showTemplateModal: false,  // Add this line
       showSuccess: false,  // Keep this for controlling visibility
       recipientsList: [],
+      templateName: '', // Add this line
       isSubmitting: false,
       // Add these lines:
       templates: [], // List of templates (should be fetched from API if needed)
@@ -597,42 +603,45 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        // Update to match your API response structure
-        this.recipientsList = response.data.data || response.data;
+        // Handle both possible response structures
+        this.recipientsList = response.data.data || response.data || [];
         
-        // Update existing recipients with complete data
-        this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
-          const found = this.recipientsList.find(r => r.id == recipient.id);
-          return found ? {
-            id: found.id,
-            name: found.name,
-            position: found.position
-          } : recipient;
-        });
+        // Only update existing recipients if they exist
+        if (this.letterForm.recipients.length > 0) {
+          this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
+            if (!recipient.id) return recipient;
+            
+            const foundRecipient = this.recipientsList.find(r => r.id === recipient.id);
+            return foundRecipient ? {
+              id: foundRecipient.id,
+              name: foundRecipient.name,
+              position: foundRecipient.position
+            } : recipient;
+          });
+        }
       } catch (error) {
         console.error('Error fetching recipients:', error);
+        // Set empty array but don't clear existing recipients
         this.recipientsList = [];
+        // You might want to show an error message to the user
+        this.errors.recipients = 'Failed to fetch recipients. Please try again.';
       }
     },
+
+    // Update updateRecipient method to handle null cases
     updateRecipient(index, recipientId) {
-      const parsedId = parseInt(recipientId, 10);
-      if (!recipientId || isNaN(parsedId) || parsedId <= 0) {
-        this.letterForm.recipients[index] = { id: '', name: '', position: '' };
-        return;
-      }
+      if (!recipientId) return;
       
-      const selectedRecipient = this.recipientsList.find(r => r.id === parsedId);
+      const selectedRecipient = this.recipientsList.find(r => 
+        r.id === (typeof recipientId === 'string' ? parseInt(recipientId) : recipientId)
+      );
       
       if (selectedRecipient) {
-        this.letterForm.recipients = [
-          ...this.letterForm.recipients.slice(0, index),
-          {
-            id: selectedRecipient.id,
-            name: selectedRecipient.name,
-            position: selectedRecipient.position
-          },
-          ...this.letterForm.recipients.slice(index + 1)
-        ];
+        this.letterForm.recipients[index] = {
+          id: selectedRecipient.id,
+          name: selectedRecipient.name || '',
+          position: selectedRecipient.position || ''
+        };
       }
       this.clearError('recipients');
     },  // Add comma here
@@ -651,235 +660,139 @@ export default {
       };
       this.closeModal();
     },
+    // Update the validateForm method
     validateForm() {
       this.errors = {};
       let isValid = true;
-  
-      // Validate title
-      if (!this.letterForm.title?.trim()) {
+    
+      // Validate type with specific values
+      // Update valid types to match backend expectations
+      const validTypes = ['memo', 'endorsement', 'invitation_meeting', 'letter_to_admin'];
+      if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
+        this.errors.type = 'Please select a valid type';
+        isValid = false;
+      }
+
+      // Add validation for required fields
+      if (!this.letterForm.title) {
         this.errors.title = 'Title is required';
         isValid = false;
       }
-  
-      // Update allowed types to match all options in the select dropdown
-      const allowedTypes = ['memo', 'endorsement', 'invitation_meeting', 'letter_to_admin'];
-      if (!this.letterForm.type?.trim() || !allowedTypes.includes(this.letterForm.type)) {
-        this.errors.type = 'Please select a valid letter type';
-        isValid = false;
-      }
-  
-      // Validate subject
-      if (!this.letterForm.subject?.trim()) {
+
+      if (!this.letterForm.subject) {
         this.errors.subject = 'Subject is required';
         isValid = false;
       }
-  
-      // Validate date
-      if (!this.letterForm.date) {
-        this.errors.date = 'Date is required';
-        isValid = false;
-      }
-  
-      // Validate content
-      if (!this.letterForm.content?.trim()) {
+
+      if (!this.letterForm.content) {
         this.errors.content = 'Content is required';
         isValid = false;
       }
-  
-      // Validate sender info
-      if (!this.letterForm.sender_name?.trim()) {
+
+      if (!this.letterForm.sender_name) {
         this.errors.sender_name = 'Sender name is required';
         isValid = false;
       }
-  
-      if (!this.letterForm.sender_position?.trim()) {
+
+      if (!this.letterForm.sender_position) {
         this.errors.sender_position = 'Sender position is required';
         isValid = false;
       }
-  
-      // Validate recipients - ensure all have valid IDs (> 0) and exist in recipientsList
-      const hasInvalidRecipients = this.letterForm.recipients.some(r => {
-        const id = Number(r.id);
-        const isValidId = !isNaN(id) && id > 0;
-        const existsInList = isValidId && this.recipientsList.some(recipient => recipient.id === id);
-        return !isValidId || !existsInList;
-      });
-      
-      if (hasInvalidRecipients) {
-        this.errors.recipients = 'All recipients must be properly selected from the list';
+
+      // Validate recipients
+      if (!this.letterForm.recipients.some(r => r.id)) {
+        this.errors.recipients = 'At least one recipient is required';
         isValid = false;
       }
-  
-      // Additional validation to ensure at least one recipient is selected
-      if (this.letterForm.recipients.length === 0 || 
-          this.letterForm.recipients.every(r => !r.id || r.id === 0)) {
-        this.errors.recipients = 'At least one valid recipient must be selected';
-        isValid = false;
-      }
-  
+    
       return isValid;
     },
 
-    handleSubmit() {
+    // Add these methods
+    async handleSubmit() {
+      if (this.isSubmitting) return;
+      
       if (!this.validateForm()) {
         return;
       }
-      // Show confirmation modal instead of direct submission
+
       this.showConfirmModal = true;
     },
 
-    // In confirmSubmit method
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
-        this.showConfirmModal = false;
+        const endpoint = this.editMode ? `/letters/${this.letter.id}` : '/letters';
+        const method = this.editMode ? 'put' : 'post';
         
-        // Filter out invalid recipients and ensure IDs are valid numbers
-        const validRecipients = this.letterForm.recipients
-          .filter(r => {
-            const id = Number(r.id);
-            return !isNaN(id) && id > 0 && this.recipientsList.some(recipient => recipient.id === id);
-          })
-          .map(r => ({
-            id: Number(r.id)
-          }));
-
-        // Additional validation to prevent empty recipients
-        if (validRecipients.length === 0) {
-          throw new Error('At least one valid recipient is required');
+        const response = await apiClient[method](endpoint, this.letterForm);
+        
+        this.showConfirmModal = false;
+        this.showSuccess = true;
+        
+        // Emit the appropriate event based on mode
+        if (this.editMode) {
+          this.$emit('update-letter', response.data);
+        } else {
+          this.$emit('save-letter', response.data);
         }
         
-        const formData = {
-          title: this.letterForm.title,
-          type: this.letterForm.type,
-          subject: this.letterForm.subject,
-          date: this.letterForm.date,
-          content: this.letterForm.content,
-          sender_name: this.letterForm.sender_name,
-          sender_position: this.letterForm.sender_position,
-          recipients: validRecipients
-        };
-    
-        const response = await apiClient.post('/letters', formData);
-    
+        // Refresh the letters list
         this.$emit('refresh-letters');
-        this.showSuccess = true;
-        setTimeout(() => {
-          this.closeModal();
-        }, 1500);
         
       } catch (error) {
         console.error('Error saving letter:', error);
-        this.errors = error.response?.data?.errors || {};
-        this.errors.submit = error.response?.data?.message || 
-          (error.message === 'At least one valid recipient is required' ? error.message : 'Failed to save letter');
+        this.errors.submit = 'Failed to save letter. Please try again.';
       } finally {
         this.isSubmitting = false;
       }
-    },  // <-- Add this comma
-    
+    },
+
+    // Add this for template saving
     async handleQuickSave() {
-      if (!this.validateForm()) {
-        return;
-      }
       this.showTemplateModal = true;
     },
 
     async confirmQuickSave() {
+      if (!this.templateName) {
+        this.errors.templateName = 'Template name is required';
+        return;
+      }
+
       try {
         this.isSubmitting = true;
-        this.showTemplateModal = false;
-
-        const formData = {
+        await apiClient.post('/templates', {
           name: this.templateName,
-          type: this.letterForm.type,
-          subject: this.letterForm.subject,
-          date: this.letterForm.date,
-          content: this.letterForm.content,
-          sender_name: this.letterForm.sender_name,
-          sender_position: this.letterForm.sender_position,
-          recipients: this.letterForm.recipients
-            .filter(r => r.id)
-            .map(r => ({
-              id: r.id,
-              name: r.name,
-              position: r.position
-            }))
-        };
-
-        // Changed from PUT to POST
-        const response = await apiClient.post('/templates', formData);
+          ...this.letterForm
+        });
         
-        // Adjust API response handling
-        const newTemplate = response.data?.data || response.data;
-        
-        // Update templates list reactively
-        this.templates = [
-          ...this.templates,
-          {
-            id: newTemplate.id,
-            name: newTemplate.name,
-            // Include other necessary template properties
-          }
-        ];
-
-        // Select the new template
-        this.selectedTemplate = newTemplate.id;
-
-        this.templateName = '';
+        this.showTemplateModal = false;
         this.showSuccess = true;
-        setTimeout(() => this.closeModal(), 1500);
+        
       } catch (error) {
-        console.error('Template save error:', error);
-        this.errors.submit = error.response?.data?.message || 'Template save failed';
+        console.error('Error saving template:', error);
+        this.errors.submit = 'Failed to save template. Please try again.';
       } finally {
         this.isSubmitting = false;
       }
-    },  // <-- Add this comma
-
+    },
     clearError(field) {
       if (this.errors && this.errors[field]) {
-        delete this.errors[field] // Changed from this.$delete to standard delete
+        this.errors[field] = null;
+        delete this.errors[field];
       }
-    }, // <-- Add this comma
+    },
     onContentInput() {
       this.clearError('content');
     },
-    async loadTemplate(templateId) {
-      try {
-        this.isTemplateLoading = true;
-        const response = await apiClient.get(`/templates/${templateId}`);
-        // Get the first item from data array if response.data is an array
-        const template = Array.isArray(response.data.data) 
-          ? response.data.data[0] 
-          : response.data.data || response.data;
-        
-        // Update all fields including title
-        this.letterForm = {
-          title: template.title || this.letterForm.title, // Now properly loads title
-          type: template.type || this.letterForm.type,
-          subject: template.subject || this.letterForm.subject,
-          content: template.content || this.letterForm.content,
-          sender_name: template.sender_name || this.letterForm.sender_name,
-          sender_position: template.sender_position || this.letterForm.sender_position,
-          recipients: template.recipients?.map(r => ({
-            id: r.id,
-            name: r.name,
-            position: r.position
-          })) || this.letterForm.recipients,
-          date: template.date ? this.formatDateForInput(template.date) : this.letterForm.date
-        };
-    
-      } catch (error) {
-        console.error('Error loading template:', error);
-        this.errors.submit = 'Failed to load template';
-      } finally {
-        this.isTemplateLoading = false;
-      }
+    showPdfPreviewButton(index) {
+      this.pdfPreviewIndex = index;
     },
-  }, // <-- end of methods
+    previewRecipientPdf(recipient) {
+      // Placeholder: Replace with your actual PDF preview logic
+    }
+  }, // <-- Properly close methods object
 
-  // Move watch here, as a sibling to methods:
   watch: {
     selectedTemplate(newVal) {
       console.log('Selected template ID:', newVal);
@@ -887,7 +800,7 @@ export default {
         this.loadTemplate(newVal);
       }
     }
-  } // <-- Removed extra comma and fixed indentation
+  }
 }
 </script>
 
@@ -934,10 +847,18 @@ export default {
 }
 </style>
 
-// --- Add your methods here ---
-showPdfPreviewButton(index) {
-  this.pdfPreviewIndex = index;
-},
-previewRecipientPdf(recipient) {
-  // Placeholder: Replace with your actual PDF preview logic
-  alert(`Previewing PDF for: ${recipient.name} - ${recipient.position}`);
+<!-- Move the style block to the root level, after the </script> tag -->
+<style scoped>
+.type-memo {
+  @apply text-blue-600;
+}
+.type-endorsement {
+  @apply text-green-600;
+}
+.type-invitation_meeting {
+  @apply text-purple-600;
+}
+.type-letter_to_admin {
+  @apply text-orange-600;
+}
+</style>

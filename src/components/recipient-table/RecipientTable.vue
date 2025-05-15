@@ -153,36 +153,27 @@ const displayedPages = computed(() => {
 const fetchRecipients = async () => {
   try {
     const response = await apiClient.get('/recipients', {
-      timeout: 30000, // Increased timeout
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+      params: {
+        no_relations: true
       }
     })
-    
-    if (response.data && response.data.data) {
-      recipients.value = response.data.data
+    // Check if response has data property and it's an array
+    if (response.data && Array.isArray(response.data.data)) {
+      recipients.value = response.data.data;
     } else if (Array.isArray(response.data)) {
-      recipients.value = response.data
+      recipients.value = response.data;
     } else {
-      recipients.value = []
-      console.error('Unexpected data format:', response.data)
+      recipients.value = [];
+      console.error('Unexpected response format:', response.data);
     }
   } catch (error) {
-    console.error('Error fetching recipients:', error)
-    recipients.value = []
-    
-    let errorMessage = 'Failed to fetch recipients. '
-    
-    if (error.code === 'ERR_NETWORK') {
-      errorMessage += 'Please check if the server is running and your network connection is stable.'
-    } else if (error.code === 'ECONNABORTED') {
-      errorMessage += 'Request timed out. Server is taking too long to respond.'
-    } else if (error.response) {
-      errorMessage += `Server returned error: ${error.response.status}`
-    }
-    
-    alert(errorMessage)
+    console.error('Error fetching recipients:', error.response || error);
+    recipients.value = [];
+    // More detailed error message
+    const errorMessage = error.response?.data?.message 
+      ? `Error: ${error.response.data.message}`
+      : 'Failed to fetch recipients. Please ensure the database is properly set up.';
+    alert(errorMessage);
   }
 }
 
