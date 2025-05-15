@@ -48,7 +48,7 @@
                   <LetterActions 
                     :letter="letter"
                     :is-loading="isPreviewLoading"
-                    @edit="openEditModal"
+                    @edit="openEditModal"  
                     @preview-pdf="previewPDF"
                     @convert-pdf-to-word="convertPDFToWord"
                     @delete="confirmDelete"
@@ -175,17 +175,8 @@
     <!-- Update the LetterEditModal component usage -->
     
     <LetterEditModal
-      v-model="showEditModal"
-      :letter="selectedLetter || { 
-        title: '',
-        type: '',
-        subject: '',
-        date: new Date().toISOString().split('T')[0],
-        recipients: [],
-        content: '',
-        sender_name: '',
-        sender_position: ''
-      }"
+      v-model="showEditModal"  
+      :letter="selectedLetter"  
       :edit-mode="editMode"
       @update:edit-mode="val => editMode = val"
       @refresh-letters="fetchLetters"
@@ -450,7 +441,6 @@ export default {
       }
     },
 
-    // In addLetter method - Remove the recipient validation
     async addLetter(letterData) {
       try {
         const formattedData = {
@@ -458,14 +448,14 @@ export default {
           subject: letterData.subject?.trim(),
           type: letterData.type,
           date: letterData.date ? this.formatDateForInput(letterData.date) : this.formatDateForInput(new Date()),
-          // Send only recipient IDs
+          // Ensure only integer IDs are sent
           recipients: letterData.recipients
-            .filter(r => r !== null)
-            .map(r => typeof r === 'object' ? r.id : r),
+            .map(r => typeof r === 'object' ? r.id : r)
+            .filter(id => Number.isInteger(id)),
           content: letterData.content?.trim(),
           sender_name: letterData.sender_name?.trim(),
           sender_position: letterData.sender_position?.trim(),
-          status: letterData.status || 'draft' // If required by backend
+          status: letterData.status || 'draft'
         };
 
         const response = await apiClient.post('/letters/', formattedData);
@@ -503,28 +493,24 @@ export default {
     
         // Keep only this single declaration:
         const recipients = letterData.recipients
-          .filter(r => r !== null)
-          .map(recipient => {
-            if (typeof recipient === 'object') return recipient;
-            const found = this.recipients.find(r => r.id === recipient);
-            return found ? { name: found.name, position: found.position } : null;
-          })
-          .filter(Boolean);
+          .filter(r => r && (typeof r === 'number' || (typeof r === 'object' && r.id)))
+          .map(r => typeof r === 'object' ? r.id : r);
 
         if (recipients.length === 0) {
-          throw new Error('At least one recipient with a name is required');
+          throw new Error('At least one recipient is required');
         }
 
         const formattedData = {
           id: letterData.id,
           title: letterData.title.trim(),
-          subject: letterData.subject?.trim() || '',  // Provide default empty string
-          type: letterData.type || 'Business Letter',  // Provide default type
+          subject: letterData.subject?.trim() || '',
+          type: letterData.type || 'Business Letter',
           date: this.formatDateForInput(letterData.date || new Date()),
           recipients: recipients,
-          content: letterData.content?.trim() || '',  // Provide default empty string
-          sender_name: letterData.sender_name?.trim() || '',  // Provide default empty string
-          sender_position: letterData.sender_position?.trim() || ''  // Provide default empty string
+          content: letterData.content?.trim() || '',
+          sender_name: letterData.sender_name?.trim() || '',
+          sender_position: letterData.sender_position?.trim() || '',
+          status: letterData.status || 'draft'
         };
 
         const response = await apiClient.put(`/letters/${letterData.id}`, formattedData);
@@ -684,8 +670,8 @@ export default {
 
     // Add edit modal method
     openEditModal(letter) {
-      this.selectedLetter = { ...letter };
-      this.showEditModal = true;
+      this.selectedLetter = { ...letter };  // Set the selected letter
+      this.showEditModal = true;  // Show the edit modal
     },
 
     previewPDF(letter) {
