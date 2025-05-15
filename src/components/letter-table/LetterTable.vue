@@ -334,17 +334,46 @@ export default {
     },
   },
   mounted() {
-    this.initData();
+    this.initializeData();
   },
   methods: {
-    async initData() {
+    async initializeData() {
       try {
-        await this.fetchLetters();
-        await this.fetchRecipients();
+        await Promise.all([
+          this.fetchLetters(),
+          this.fetchRecipients()
+        ]);
       } catch (error) {
-        console.error('Error during component initialization:', error);
+        console.error('Initialization error:', error);
       }
     },
+    async fetchLetters() {
+      try {
+        const response = await apiClient.get('/letters');
+        console.log('API /letters response:', response.data); // Debug: See the response
+        // Assign directly if response.data is an array
+        this.letters = Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        console.error('Error fetching letters:', error);
+        this.letters = [];
+        alert('Failed to fetch letters. Please try again.');
+      }
+    },
+    async fetchRecipients() {
+      try {
+        const response = await apiClient.get('/recipients');
+        this.recipients = (response.data?.data || []).map(recipient => ({
+          id: recipient.id,
+          name: recipient.name || '',
+          position: recipient.position || '',
+          selected: false
+        }));
+      } catch (error) {
+        console.error('Error fetching recipients:', error);
+        this.recipients = [];
+      }
+    },
+    // Fix: Add comma and proper indentation
     formatDate(dateString) {
       if (!dateString) return '';
       try {
@@ -429,11 +458,14 @@ export default {
           subject: letterData.subject?.trim(),
           type: letterData.type,
           date: letterData.date ? this.formatDateForInput(letterData.date) : this.formatDateForInput(new Date()),
-          // Use IDs directly from form data
-          recipients: letterData.recipients.filter(r => r !== null), // Add filter to remove null entries
+          // Send only recipient IDs
+          recipients: letterData.recipients
+            .filter(r => r !== null)
+            .map(r => typeof r === 'object' ? r.id : r),
           content: letterData.content?.trim(),
           sender_name: letterData.sender_name?.trim(),
-          sender_position: letterData.sender_position?.trim()
+          sender_position: letterData.sender_position?.trim(),
+          status: letterData.status || 'draft' // If required by backend
         };
 
         const response = await apiClient.post('/letters/', formattedData);
@@ -602,7 +634,7 @@ export default {
       }
     },
 
-    async fetchRecipients() {
+    async fetchRecipients(retryCount = 3) {
       try {
         const response = await apiClient.get('/recipients');
         const recipientsData = response.data?.data || response.data || [];
@@ -618,8 +650,17 @@ export default {
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
+        if (retryCount > 0 && error.message === 'Network Error') {
+          console.log(`Retrying... (${retryCount} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return this.fetchRecipients(retryCount - 1);
+        }
         this.recipients = [];
-        alert('Failed to fetch recipients. Please try again.');
+        this.$notify({
+          title: 'Error',
+          text: 'Failed to fetch recipients. Please check your connection.',
+          type: 'error'
+        });
       }
     },
     // Add pagination methods

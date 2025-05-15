@@ -154,7 +154,18 @@ const displayedPages = computed(() => {
 const fetchRecipients = async () => {
   try {
     const response = await apiClient.get('/recipients');
-    recipients.value = response.data.data || response.data || [];
+    console.log('API /recipients response:', response.data); // Debug: See what the backend returns
+
+    // Try to find the array in the response
+    let data = [];
+    if (Array.isArray(response.data)) {
+      data = response.data;
+    } else if (Array.isArray(response.data.data)) {
+      data = response.data.data;
+    } else if (Array.isArray(response.data.recipients)) {
+      data = response.data.recipients;
+    }
+    recipients.value = data;
   } catch (error) {
     console.error('Error fetching recipients:', error);
     recipients.value = [];
