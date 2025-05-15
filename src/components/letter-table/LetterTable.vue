@@ -333,28 +333,18 @@ export default {
       return this.recipients || []; // Ensure we always return an array
     },
   },
-  // Replace this:
-  // async mounted() {
-  //   try {
-  //     await this.fetchLetters();
-  //     await this.fetchRecipients();
-  //   } catch (error) {
-  //     console.error('Error during component initialization:', error);
-  //   }
-  // },
-  
-  // With this:
   mounted() {
-    (async () => {
+    this.initData();
+  },
+  methods: {
+    async initData() {
       try {
         await this.fetchLetters();
         await this.fetchRecipients();
       } catch (error) {
         console.error('Error during component initialization:', error);
       }
-    })();
-  },
-  methods: {
+    },
     formatDate(dateString) {
       if (!dateString) return '';
       try {
