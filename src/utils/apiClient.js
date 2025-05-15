@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://192.168.5.94:8000/api', // Make sure this matches your actual API URL
+  baseURL: 'http://192.168.5.94:8000/api',  // Update to your current IP
   timeout: 30000,
   withCredentials: true,
   headers: {
@@ -11,51 +11,74 @@ const apiClient = axios.create({
   }
 });
 
-// Modify request interceptor to handle CSRF token more gracefully
+// Update CSRF token request
 apiClient.interceptors.request.use(
   async config => {
     try {
-      // Only attempt to get CSRF token if it's not a GET request and token is missing
       if (config.method !== 'get' && !document.cookie.includes('XSRF-TOKEN')) {
-        await axios.get('http://192.168.5.94:8000/sanctum/csrf-cookie', {
-          timeout: 5000 // Add shorter timeout for CSRF request
+        await axios.get('http://192.168.5.93:8000/sanctum/csrf-cookie', {  // Update to your current IP
+          withCredentials: true,
+          timeout: 10000,  // Increased timeout for CSRF request
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         });
       }
     } catch (error) {
-      console.warn('CSRF token fetch failed:', error);
-      // Continue with request even if CSRF fetch fails
+      console.error('CSRF token fetch failed:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
     }
-    
-    if (config.headers) {
-      delete config.headers['cache-control'];
-    }
-    config.retryCount = config.retryCount || 0;
     return config;
   },
   error => Promise.reject(error)
 );
 
+// Response interceptor remains the same
 apiClient.interceptors.response.use(
   response => response,
   async error => {
+    console.error('API Error Details:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config,
+      message: error.message
+    });
+    
     const config = error.config;
     
-    // Retry up to 3 times on timeout or network errors
-    if ((error.code === 'ECONNABORTED' || !error.response) && config.retryCount < 3) {
-      config.retryCount += 1;
-      return new Promise(resolve => setTimeout(() => resolve(apiClient(config)), 1000));
+    // Handle unauthorized (401) responses
+    if (error.response?.status === 401) {
+        window.location.href = '/login';  // Redirect to login
+        return Promise.reject({ success: false, message: 'Authentication required' });
+    }
+    
+    // Retry logic with improved condition
+    if ((error.code === 'ECONNABORTED' || error.response?.status >= 500) && (config.retryCount || 0) < 3) {
+        config.retryCount = (config.retryCount || 0) + 1;
+        return new Promise(resolve => setTimeout(() => resolve(apiClient(config)), 1000));
     }
 
-    if (!error.response) {
-      error.response = {
-        status: 0,
-        data: {
-          message: 'Network Error - Unable to connect to server'
-        }
-      };
-    }
-    return Promise.reject(error);
+    return Promise.reject({
+        success: error.response?.data?.success || false,
+        message: error.response?.data?.message || 
+               (error.response?.status ? `HTTP Error ${error.response.status}` : 'Network Error'),
+        errors: error.response?.data?.errors,
+        status: error.response?.status
+    });
   }
 );
+
+// Add letters API methods
+export const lettersApi = {
+  getAll: () => apiClient.get('/letters'),
+  getById: (id) => apiClient.get(`/letters/${id}`),
+  create: (data) => apiClient.post('/letters', data),
+  update: (id, data) => apiClient.put(`/letters/${id}`, data),
+  delete: (id) => apiClient.delete(`/letters/${id}`)
+};
 
 export default apiClient;

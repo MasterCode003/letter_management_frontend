@@ -105,13 +105,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import RecipientActions from './RecipientActions.vue'
 import RecipientForm from './RecipientForm.vue'
-import axios from 'axios'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import apiClient from '@/utils/apiClient'
+import { useToast } from 'vue-toastification'
 
+const toast = useToast()
 const recipients = ref([])
 const showAddModal = ref(false)
 const selectedRecipient = ref(null)
@@ -152,44 +153,28 @@ const displayedPages = computed(() => {
 
 const fetchRecipients = async () => {
   try {
-    const response = await apiClient.get('/recipients', {
-      params: {
-        no_relations: true
-      }
-    })
-    // Check if response has data property and it's an array
-    if (response.data && Array.isArray(response.data.data)) {
-      recipients.value = response.data.data;
-    } else if (Array.isArray(response.data)) {
-      recipients.value = response.data;
-    } else {
-      recipients.value = [];
-      console.error('Unexpected response format:', response.data);
-    }
+    const response = await apiClient.get('/recipients');
+    recipients.value = response.data.data || response.data || [];
   } catch (error) {
-    console.error('Error fetching recipients:', error.response || error);
+    console.error('Error fetching recipients:', error);
     recipients.value = [];
-    // More detailed error message
-    const errorMessage = error.response?.data?.message 
-      ? `Error: ${error.response.data.message}`
-      : 'Failed to fetch recipients. Please ensure the database is properly set up.';
-    alert(errorMessage);
+    alert('Failed to fetch recipients. Please try again.');
   }
 }
 
 const handleDelete = async (id) => {
   try {
-    await apiClient.delete(`/recipients/${id}`)
-    await fetchRecipients()
+    await apiClient.delete(`/recipients/${id}`);
+    await fetchRecipients();
   } catch (error) {
-    console.error('Error deleting recipient:', error)
-    alert('Failed to delete recipient. Please try again.')
+    console.error('Error deleting recipient:', error);
+    alert('Failed to delete recipient. Please try again.');
   }
 }
 
 const handleSave = async (recipient) => {
-  await fetchRecipients()
-  closeModal()
+  await fetchRecipients();
+  closeModal();
 }
 
 const closeModal = () => {

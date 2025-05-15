@@ -603,14 +603,10 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        // Handle both possible response structures
         this.recipientsList = response.data.data || response.data || [];
-        
-        // Only update existing recipients if they exist
         if (this.letterForm.recipients.length > 0) {
           this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
             if (!recipient.id) return recipient;
-            
             const foundRecipient = this.recipientsList.find(r => r.id === recipient.id);
             return foundRecipient ? {
               id: foundRecipient.id,
@@ -621,9 +617,7 @@ export default {
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
-        // Set empty array but don't clear existing recipients
         this.recipientsList = [];
-        // You might want to show an error message to the user
         this.errors.recipients = 'Failed to fetch recipients. Please try again.';
       }
     },
@@ -724,22 +718,15 @@ export default {
         this.isSubmitting = true;
         const endpoint = this.editMode ? `/letters/${this.letter.id}` : '/letters';
         const method = this.editMode ? 'put' : 'post';
-        
         const response = await apiClient[method](endpoint, this.letterForm);
-        
         this.showConfirmModal = false;
         this.showSuccess = true;
-        
-        // Emit the appropriate event based on mode
         if (this.editMode) {
           this.$emit('update-letter', response.data);
         } else {
           this.$emit('save-letter', response.data);
         }
-        
-        // Refresh the letters list
         this.$emit('refresh-letters');
-        
       } catch (error) {
         console.error('Error saving letter:', error);
         this.errors.submit = 'Failed to save letter. Please try again.';

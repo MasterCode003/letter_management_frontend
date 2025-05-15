@@ -213,16 +213,14 @@
 </style>
 
 <script>
+// Remove the axios configuration from here and keep only the import
+import axios from 'axios';
 import apiClient from '@/utils/apiClient';
 import LetterModal from './LetterModal.vue';
 import LetterActions from './LetterActions.vue';
-// Update the import statement
 import SearchFilters from './SearchFilters.vue';
 import TablePagination from './TablePagination.vue';
-import DeleteConfirmationModal from './modals/DeleteConfirmationModal.vue';  // Updated path
-import useLetterUpdate from './composables/useLetterUpdate';
-import useLetterDelete from './composables/useLetterDelete';
-import useLetterPreview from './composables/useLetterPreview';
+import DeleteConfirmationModal from './modals/DeleteConfirmationModal.vue';
 import LetterEditModal from './LetterEditModal.vue';
 
 export default {
@@ -335,13 +333,26 @@ export default {
       return this.recipients || []; // Ensure we always return an array
     },
   },
-  async mounted() {
-    try {
-      await this.fetchLetters();
-      await this.fetchRecipients();
-    } catch (error) {
-      console.error('Error during component initialization:', error);
-    }
+  // Replace this:
+  // async mounted() {
+  //   try {
+  //     await this.fetchLetters();
+  //     await this.fetchRecipients();
+  //   } catch (error) {
+  //     console.error('Error during component initialization:', error);
+  //   }
+  // },
+  
+  // With this:
+  mounted() {
+    (async () => {
+      try {
+        await this.fetchLetters();
+        await this.fetchRecipients();
+      } catch (error) {
+        console.error('Error during component initialization:', error);
+      }
+    })();
   },
   methods: {
     formatDate(dateString) {
@@ -509,29 +520,68 @@ export default {
       }
     },
 
-    // Keep only one fetchLetters
-    async handleRefreshLetters(params = {}) {
-      const query = new URLSearchParams({
-        sort: params.sort || '-updated_at',
-        page: params.page || 1
-      }).toString();
     
-      try {
-        const response = await apiClient.get(`/letters?${query}`);
-        this.letters = response.data.data;
-    
-        if (response.data.meta) {
-          this.pagination = response.data.meta;
-          this.currentPage = response.data.meta.current_page;
-        }
-      } catch (error) {
-        console.error('Refresh error:', error);
-        alert('Failed to refresh letters');
-      }
+      // Remove this stray block:
+      // try {
+      //   const response = await apiClient.get(`/letters?${query}`);
+      //   this.letters = response.data.data;
+      //
+      //   if (response.data.meta) {
+      //     this.pagination = response.data.meta;
+      //     this.currentPage = response.data.meta.current_page;
+      //   }
+      // } catch (error) {
+      //   console.error('Refresh error:', error);
+      //   alert('Failed to refresh letters');
+      // }
     },
 
     async fetchLetters() {
-      await this.handleRefreshLetters({ sort: '-updated_at' });
+      try {
+        this.isFetching = true;
+        const response = await apiClient.get('/letters', {
+          params: {
+            sort: '-updated_at'
+          }
+        });
+        
+        if (response.data?.success) {
+          this.letters = response.data.data;
+          
+          if (response.data.meta) {
+            this.pagination = response.data.meta;
+            this.currentPage = response.data.meta.current_page;
+          }
+        } else {
+          throw new Error(response.data?.message || 'Invalid response format');
+        }
+      } catch (error) {
+        console.error('Refresh error:', error);
+        
+        // More detailed error handling
+        let errorMessage = 'Failed to fetch letters';
+        if (error.response) {
+          if (error.response.status === 500) {
+            errorMessage = 'Server error occurred. Please try again later.';
+          } else if (error.response.data?.message) {
+            errorMessage = error.response.data.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Show error to user
+        this.$notify({
+          title: 'Error',
+          text: errorMessage,
+          type: 'error'
+        });
+        
+        // Set empty state
+        this.letters = [];
+      } finally {
+        this.isFetching = false;
+      }
     },
 
     // Keep only one deleteLetter
@@ -565,11 +615,7 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        console.log('Recipients response:', response.data);
-
-        // Handle both data structures: {data: [...]} and direct array
         const recipientsData = response.data?.data || response.data || [];
-        
         if (Array.isArray(recipientsData)) {
           this.recipients = recipientsData.map(recipient => ({
             id: recipient.id,
@@ -577,22 +623,13 @@ export default {
             position: recipient.position || '',
             selected: false
           }));
-          console.log('Processed recipients:', this.recipients);
         } else {
-          console.warn('Invalid recipients data structure:', response.data);
           this.recipients = [];
         }
       } catch (error) {
         console.error('Error fetching recipients:', error);
-        console.log('Error response:', error.response);
         this.recipients = [];
-        if (error.response?.status === 404) {
-          alert('Recipients endpoint not found. Please check your API configuration.');
-        } else if (error.response?.data?.error?.includes('Table')) {
-          alert('Recipients table is not set up. Please contact your system administrator.');
-        } else {
-          alert('Failed to fetch recipients. Please check the console for details.');
-        }
+        alert('Failed to fetch recipients. Please try again.');
       }
     },
     // Add pagination methods
@@ -664,7 +701,7 @@ export default {
       }
     }
   } // <-- This closes the methods object. No comma needed if this is the last property in export default.
-} // <-- This closes the export default object.
+ // <-- This closes the export default object.
 
 </script>
 

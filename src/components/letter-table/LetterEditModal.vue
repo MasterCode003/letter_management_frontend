@@ -599,10 +599,7 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        // Update to match your API response structure
         this.recipientsList = response.data.data || response.data;
-        
-        // Update existing recipients with complete data
         this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
           const found = this.recipientsList.find(r => r.id == recipient.id);
           return found ? {
@@ -710,14 +707,29 @@ export default {
       return isValid;
     },
 
-    handleSubmit() {
-      if (!this.validateForm()) {
-        return;
+    async handleSubmit() {
+      if (!this.validateForm()) return;
+      this.isSubmitting = true;
+      try {
+        let response;
+        if (this.editMode) {
+          response = await apiClient.put(`/letters/${this.letter.id}`, this.letterForm);
+        } else {
+          response = await apiClient.post('/letters', this.letterForm);
+        }
+        this.$emit('refresh-letters');
+        this.showSuccess = true;
+        setTimeout(() => {
+          this.closeModal();
+        }, 1500);
+      } catch (error) {
+        console.error('Error submitting letter:', error);
+        this.errors = error.response?.data?.errors || {};
+        this.errors.submit = error.response?.data?.message || 'Failed to save letter';
+      } finally {
+        this.isSubmitting = false;
       }
-      // Show confirmation modal instead of direct submission
-      this.showConfirmModal = true;
     },
-
     // In confirmSubmit method
     async confirmSubmit() {
       try {

@@ -137,23 +137,21 @@ const showSuccessModal = ref(false)
 const handleSubmit = debounce(async () => {
   try {
     let response;
-    
     if (form.value.id) {
       // Update existing recipient
       response = await apiClient.put(`/recipients/${form.value.id}`, {
         name: form.value.name,
         position: form.value.position
-      })
+      });
     } else {
       // Create new recipient
       response = await apiClient.post('/recipients', {
         name: form.value.name,
         position: form.value.position
-      })
+      });
     }
-    
-    emit('save', response.data)
-    showSuccessModal.value = true
+    emit('save', response.data);
+    showSuccessModal.value = true;
   } catch (error) {
     console.error('Save failed:', error)
     let errorMessage = props.recipient ? 'Error updating recipient. ' : 'Error creating recipient. '
@@ -170,7 +168,7 @@ const handleSubmit = debounce(async () => {
     
     alert(errorMessage)
   }
-}, 500)
+}, 300);
 
 // Success message computed property
 const successMessage = computed(() => 
