@@ -728,6 +728,9 @@ export default {
         const response = await apiClient[method](endpoint, payload);
         this.showConfirmModal = false;
         this.showSuccess = true;
+        setTimeout(() => {
+          this.closeModal();
+        }, 1200); // Close after 1.2 seconds
         if (this.editMode) {
           this.$emit('update-letter', response.data);
         } else {
@@ -742,28 +745,76 @@ export default {
       }
     },
 
+    async handleQuickSave() {
+      if (this.isSubmitting) return;
+      
+      // Validate required fields before showing template modal
+      const requiredFields = ['title', 'type', 'subject', 'content', 'sender_name', 'sender_position', 'date'];
+      const errors = {};
+      
+      requiredFields.forEach(field => {
+        if (!this.letterForm[field]) {
+          errors[field] = `The ${field.replace('_', ' ')} field is required.`;
+        }
+      });
+    
+      if (Object.keys(errors).length > 0) {
+        this.errors = errors;
+        return;
+      }
+    
+      // Show template name input modal if validation passes
+      this.showTemplateModal = true;
+    },
+    
     async confirmQuickSave() {
       if (!this.templateName) {
         this.errors.templateName = 'Template name is required';
         return;
       }
-
+    
+      // Validate recipients and date
+      if (!this.letterForm.recipients[0].id || !this.letterForm.recipients[0].name || !this.letterForm.recipients[0].position) {
+        this.errors.recipients = 'Recipient information (ID, Name, and Position) is required';
+        return;
+      }
+    
+      if (!this.letterForm.date) {
+        this.errors.date = 'The date field is required';
+        return;
+      }
+    
       try {
         this.isSubmitting = true;
-        // Ensure recipients are sent as integer IDs
         const payload = {
           name: this.templateName,
-          ...this.letterForm,
-          recipients: this.letterForm.recipients
-            .map(r => parseInt(r.id, 10))
-            .filter(id => !isNaN(id))
+          title: this.letterForm.title,  // Ensure title is included
+          type: this.letterForm.type,
+          subject: this.letterForm.subject,
+          content: this.letterForm.content,
+          sender_name: this.letterForm.sender_name,
+          sender_position: this.letterForm.sender_position,
+          date: this.letterForm.date,    // Add date
+          recipients: this.letterForm.recipients.map(recipient => ({
+            id: recipient.id,
+            name: recipient.name,
+            position: recipient.position
+          }))
         };
+    
         await apiClient.post('/templates', payload);
         this.showTemplateModal = false;
         this.showSuccess = true;
+        setTimeout(() => {
+          this.closeModal();
+        }, 1200);
       } catch (error) {
         console.error('Error saving template:', error);
-        this.errors.submit = 'Failed to save template. Please try again.';
+        if (error.response?.data?.errors) {
+          this.errors = error.response.data.errors;
+        } else {
+          this.errors.submit = 'Failed to save template. Please try again.';
+        }
       } finally {
         this.isSubmitting = false;
       }
@@ -847,7 +898,7 @@ export default {
 .type-endorsement {
   @apply text-green-600;
 }
-.type-invitation_meeting {
+.type-invitation {
   @apply text-purple-600;
 }
 .type-letter_to_admin {

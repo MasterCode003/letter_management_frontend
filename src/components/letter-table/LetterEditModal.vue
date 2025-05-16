@@ -14,6 +14,7 @@
               <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
+                  <!-- Keep the input with letter.title -->
                   <input
                     v-model="letter.title"
                     :class="{'border-red-500': errors.title}"
@@ -40,8 +41,8 @@
                   Back
                 </button>
                 <button
-                  type="submit"
-                  @click="handleSubmit"
+                  type="button"
+                  @click="showConfirmModal = true"
                   :disabled="isSubmitting"
                   class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2 transition-all disabled:opacity-50"
                 >
@@ -79,17 +80,19 @@
                     <div class="flex flex-col">
                       <div class="relative">
                         <!-- In the type select element -->
+                        <!-- Change this in the template section -->
+                        <!-- Change the select element -->
                         <select
-                          v-model="letterForm.type"
+                          v-model="letter.type"
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                           @change="handleTypeChange"
                         >
                           <option value="" disabled>Select Type</option>
-                          <option value="memo">Memo</option>
-                          <option value="endorsement">Endorsement</option>
-                          <option value="invitation_meeting">Invitation Meeting</option>
-                          <option value="letter_to_admin">Letter to Admin</option>
+                          <option value="Memo">Memo</option>
+                          <option value="Endorsement">Endorsement</option>
+                          <option value="Invitation Meeting">Invitation Meeting</option>
+                          <option value="Letter to Admin">Letter to Admin</option>
                         </select>
                         <ValidationWarning v-if="errors.type" :message="errors.type" />
                         <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -155,6 +158,7 @@
                     </button>
                   </div>
 
+              
                   <div v-for="(recipient, index) in letter.recipients" :key="index" class="flex items-center gap-4 ml-24">
                     <div class="flex-1">
                       <select
@@ -188,7 +192,7 @@
                       </div>
                     </div>
                     <button
-                      v-if="letterForm.recipients.length > 1"
+                      v-if="letter.recipients.length > 1"
                       @click="removeRecipient(index)"
                       type="button"
                       class="text-red-600 hover:text-red-800"
@@ -222,7 +226,7 @@
                   <label class="font-medium w-24 text-lg">Date:</label>
                   <div class="flex flex-col">
                     <input
-                      v-model="letter.date"
+                      v-model="formattedDate"
                       type="date"
                       required
                       class="w-[200px] border rounded-md px-4 py-2"
@@ -300,10 +304,16 @@
   </transition>
 
   <!-- Success Message Modal -->
+  <ConfirmationModal
+    :show="showConfirmModal"
+    @confirm="confirmSubmit"
+    @cancel="showConfirmModal = false"
+  />
+
   <SuccessMessageModal 
     v-if="showSuccess"
-    message="Letter saved successfully!"
-    @close="closeModal"
+    message="Updated successfully!"
+    @close="handleSuccessClose"
   />
 
   <!-- Confirmation Modal -->
@@ -395,16 +405,25 @@ import apiClient from '@/utils/apiClient'; // Using default import of named impo
 
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
+import ConfirmationModal from './modals/ConfirmationModal.vue';
 import SuccessMessageModal from './modals/SuccessMessageModal.vue';
-// Add this import:
 import ValidationWarning from '@/components/common/ValidationWarning.vue';
+
+// Add this constant before export default
+const typeMap = {
+  'memo': 'Memo',
+  'endorsement': 'Endorsement',
+  'invitation_meeting': 'Invitation Meeting',
+  'letter_to_admin': 'Letter to Admin'
+};
 
 export default {
   name: 'LetterEditModal',
   components: {
     QuillEditor,
     SuccessMessageModal,
-    ValidationWarning // Register the component
+    ValidationWarning,
+    ConfirmationModal // <-- Add this line
   },
   props: {
     modelValue: {
@@ -507,48 +526,24 @@ export default {
   async created() {
     try {
       await this.fetchCSRFToken();
-      
-      // Fetch recipients first
       await this.fetchRecipients();
       
-      // Then fetch templates
       const templatesResponse = await apiClient.get('/templates');
       this.templates = templatesResponse.data.data || templatesResponse.data;
 
       if (this.letter && Object.keys(this.letter).length > 0) {
-        // Instead of mutating prop directly
-        this.$emit('update:editMode', true); // Change this line
-        const formattedRecipients = Array.isArray(this.letter.recipients) 
-          ? this.letter.recipients.map(r => {
-              // Handle both object and ID formats
-              if (typeof r === 'object') {
-                return {
-                  id: r.id || '',
-                  name: r.name || '',
-                  position: r.position || ''
-                };
-              } else {
-                // If it's just an ID, we'll populate name/position after fetching recipients
-                return {
-                  id: r,
-                  name: '',
-                  position: ''
-                };
-              }
-            })
-          : [{
-              id: this.letter.recipients?.id || this.letter.recipients || '',
-              name: this.letter.recipients?.name || '',
-              position: this.letter.recipients?.position || ''
-            }];
+        this.$emit('update:editMode', true);
         
-        this.letterForm = {
+        // Initialize localLetter with prop data
+        this.localLetter = {
           ...this.letter,
-          date: this.formatDateForInput(this.letter.date),
-          recipients: formattedRecipients
+          date: this.formatDateForInput(this.letter.date || new Date()),
+          type: typeMap[this.letter.type] || this.letter.type || ''
         };
+      } else {
+        // Initialize with default values
+        this.localLetter.date = this.formatDateForInput(new Date());
       }
-      this.fetchRecipients();
     } catch (error) {
       console.error('Component initialization error:', error);
       this.closeModal();
@@ -575,8 +570,17 @@ export default {
 
     formatDateForInput(dateString) {
       if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toISOString().split('T')[0];
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return ''; // Invalid date
+        
+        // Adjust for local timezone
+        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+        return localDate.toISOString().split('T')[0];
+      } catch (error) {
+        console.error('Date formatting error:', error);
+        return '';
+      }
     },
 
     closeModal() {
@@ -585,15 +589,20 @@ export default {
       this.$emit('close');
     },
     addRecipient() {
-      this.letterForm.recipients.push({ 
-        id: '', 
-        name: '', 
-        position: '' 
+      if (!Array.isArray(this.letter.recipients)) {
+        this.letter.recipients = [];
+      }
+      this.letter.recipients.push({
+        id: '',
+        name: '',
+        position: ''
       });
+      this.clearError('recipients');
     },
+
     removeRecipient(index) {
-      if (this.letterForm.recipients.length > 1) {
-        this.letterForm.recipients.splice(index, 1);
+      if (this.letter.recipients.length > 1) {
+        this.letter.recipients.splice(index, 1);
       }
     },
     async fetchRecipients() {
@@ -655,55 +664,61 @@ export default {
     validateForm() {
       this.errors = {};
       let isValid = true;
-
+    
       // Validate title
       if (!this.letterForm.title?.trim()) {
         this.errors.title = 'Title is required';
         isValid = false;
       }
-
-      // Validate type
-      if (!this.letterForm.type?.trim()) {
-        this.errors.type = 'Type is required';
+    
+      // Validate type with human-readable values
+      const validTypes = [
+        'Memo',
+        'Endorsement',
+        'Invitation Meeting',
+        'Letter to Admin'
+      ];
+      if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
+        this.errors.type = 'Please select a valid type';
         isValid = false;
       }
-
+    
       // Validate subject
       if (!this.letterForm.subject?.trim()) {
         this.errors.subject = 'Subject is required';
         isValid = false;
       }
-
+    
       // Validate date
       if (!this.letterForm.date) {
         this.errors.date = 'Date is required';
         isValid = false;
       }
-
+    
       // Validate content
       if (!this.letterForm.content?.trim()) {
         this.errors.content = 'Content is required';
         isValid = false;
       }
-
+    
       // Validate sender info
       if (!this.letterForm.sender_name?.trim()) {
         this.errors.sender_name = 'Sender name is required';
         isValid = false;
       }
-
+    
       if (!this.letterForm.sender_position?.trim()) {
         this.errors.sender_position = 'Sender position is required';
         isValid = false;
       }
-
+    
       // Validate recipients
       const hasEmptyRecipients = this.letterForm.recipients.some(r => !r.id);
       if (hasEmptyRecipients) {
         this.errors.recipients = 'All recipients must be selected';
         isValid = false;
       }
-
+    
       return isValid;
     },
 
@@ -711,12 +726,29 @@ export default {
       if (!this.validateForm()) return;
       this.isSubmitting = true;
       try {
+        // Ensure all fields are properly converted to strings where needed
+        const formData = {
+          title: this.letterForm.title?.toString() || '',
+          type: this.letterForm.type?.toString() || '',
+          subject: this.letterForm.subject?.toString() || '',
+          date: this.letterForm.date,
+          content: this.letterForm.content?.toString() || '',
+          sender_name: this.letterForm.sender_name?.toString() || '',
+          sender_position: this.letterForm.sender_position?.toString() || '',
+          recipients: this.letterForm.recipients.map(recipient => ({
+            id: recipient.id ? parseInt(recipient.id) : null,
+            name: recipient.name?.toString() || '',
+            position: recipient.position?.toString() || ''
+          })).filter(r => r.id !== null)
+        };
+    
         let response;
         if (this.editMode) {
-          response = await apiClient.put(`/letters/${this.letter.id}`, this.letterForm);
+          response = await apiClient.put(`/letters/${this.letter.id}`, formData);
         } else {
-          response = await apiClient.post('/letters', this.letterForm);
+          response = await apiClient.post('/letters', formData);
         }
+    
         this.$emit('refresh-letters');
         this.showSuccess = true;
         setTimeout(() => {
@@ -730,27 +762,26 @@ export default {
         this.isSubmitting = false;
       }
     },
-    // In confirmSubmit method
+
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
         this.showConfirmModal = false;
-        
+    
+        // Use the same data conversion as handleSubmit
         const formData = {
-          title: this.letterForm.title,
-          type: this.letterForm.type,
-          subject: this.letterForm.subject,
+          title: this.letterForm.title?.toString() || '',
+          type: this.letterForm.type?.toString() || '',
+          subject: this.letterForm.subject?.toString() || '',
           date: this.letterForm.date,
-          content: this.letterForm.content,
-          sender_name: this.letterForm.sender_name,
-          sender_position: this.letterForm.sender_position,
-          recipients: this.letterForm.recipients
-            .filter(r => r.id)
-            .map(r => ({
-              id: r.id,
-              name: r.name,
-              position: r.position
-            }))
+          content: this.letterForm.content?.toString() || '',
+          sender_name: this.letterForm.sender_name?.toString() || '',
+          sender_position: this.letterForm.sender_position?.toString() || '',
+          recipients: this.letterForm.recipients.map(recipient => ({
+            id: recipient.id ? parseInt(recipient.id) : null,
+            name: recipient.name?.toString() || '',
+            position: recipient.position?.toString() || ''
+          })).filter(r => r.id !== null)
         };
     
         let response;
@@ -759,13 +790,12 @@ export default {
         } else {
           response = await apiClient.post('/letters', formData);
         }
-
-        this.$emit('refresh-letters', { sortDescending: !this.editMode }); // Add sort parameter
+    
+        this.$emit('refresh-letters', { sortDescending: !this.editMode });
         this.showSuccess = true;
         setTimeout(() => {
           this.closeModal();
         }, 1500);
-        
       } catch (error) {
         console.error('Error submitting letter:', error);
         this.errors = error.response?.data?.errors || {};
@@ -864,18 +894,22 @@ export default {
         this.isTemplateLoading = false;
       }
     },
-    // Update validateForm method
     validateForm() {
       this.errors = {};
       let isValid = true;
-    
-    // Validate type with specific values
-    const validTypes = ['memo', 'endorsement', 'invitation_meeting', 'letter_to_admin'];
-    if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
-      this.errors.type = 'Please select a valid type';
-      isValid = false;
-    }
-    
+
+      // Validate type with human-readable values
+      const validTypes = [
+        'Memo',
+        'Endorsement',
+        'Invitation Meeting',
+        'Letter to Admin'
+      ];
+      if (!this.letter.type || !validTypes.includes(this.letter.type)) {
+        this.errors.type = 'Please select a valid type';
+        isValid = false;
+      }
+
       return isValid;
     },
   }, // <-- end of methods

@@ -29,12 +29,7 @@
       @close="showPreviewModal = false"
     />
     
-    <!-- Success Message Modal -->
-    <SuccessMessageModal
-      v-if="showSuccessMessage"
-      message="Letter successfully deleted!"
-      @close="showSuccessMessage = false"
-    />
+    <!-- Remove the SuccessMessageModal component from here -->
 
     <!-- Error Message Modal -->
     <div v-if="showErrorMessage" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -85,7 +80,7 @@ export default {
     TrashIcon,
     ArrowPathIcon,
     DocumentIcon,
-    SuccessMessageModal,
+    // Remove SuccessMessageModal from components
     CSpinner,
     PreviewOptionsModal
   },
@@ -126,7 +121,30 @@ export default {
           throw new Error('No letter selected');
         }
 
-        const response = await apiClient.get(`/api/letters/${this.letter.id}/preview`, {
+        // Normalize the letter type and convert to lowercase for comparison
+        const normalizedType = this.letter.type?.trim().toLowerCase();
+        console.log('Letter type:', normalizedType);
+
+        // Map letter types to their corresponding endpoints (using lowercase keys)
+        const endpointMap = {
+          'memo': `/memos/${this.letter.id}/preview-pdf`,
+          'endorsement': `/endorsements/${this.letter.id}/preview-pdf`,
+          'letter to admin': `/letters-to-admin/${this.letter.id}/preview-pdf`,
+          'invitation meeting': `/invitation-meetings/${this.letter.id}/preview-pdf`,
+          // Add snake_case variants
+          'letter_to_admin': `/letters-to-admin/${this.letter.id}/preview-pdf`,
+          'invitation_meeting': `/invitation-meetings/${this.letter.id}/preview-pdf`
+        };
+
+        const endpoint = endpointMap[normalizedType];
+        if (!endpoint) {
+          console.error('Type mapping failed for:', normalizedType);
+          throw new Error(`Invalid letter type: ${this.letter.type}`);
+        }
+
+        console.log('Using endpoint:', endpoint); // Debug log
+
+        const response = await apiClient.get(endpoint, {
           responseType: 'blob',
           headers: {
             'Accept': 'application/pdf'
@@ -191,10 +209,7 @@ export default {
     },
     handleDelete() {
       this.$emit('delete', this.letter.id);
-      this.showSuccessMessage = true;
-      setTimeout(() => {
-        this.showSuccessMessage = false;
-      }, 2000);
+      // Remove the success message handling from here
     }
   }
 }

@@ -58,12 +58,16 @@
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.title }}</td>
               <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(letter.date) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="{
-                  'px-2 py-1 rounded-full text-xs font-medium': true,
-                  'bg-blue-100 text-blue-800': letter.type === 'Business Letter',
-                  'bg-green-100 text-green-800': letter.type === 'Memo'
-                }">
-                  {{ letter.type || 'Unknown Type' }}
+                <span :class="[
+                  'px-2 py-1 rounded-full text-xs font-semibold type-badge',
+                  {
+                    'type-memo': letter.type && letter.type.trim().toLowerCase() === 'memo',
+                    'type-endorsement': letter.type && letter.type.trim().toLowerCase() === 'endorsement',
+                    'type-invitation': letter.type && letter.type.trim().toLowerCase() === 'invitation meeting',
+                    'type-admin': letter.type && letter.type.trim().toLowerCase() === 'letter to admin'
+                  }
+                ]">
+                  {{ letter.type ? letter.type.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown type' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">{{ letter.subject }}</td>
@@ -210,6 +214,21 @@
 .fade-leave-from {
   opacity: 1;
 }
+.type-badge {
+  color: #fff;
+}
+.type-memo {
+  background-color: #2563eb; /* blue-700 */
+}
+.type-endorsement {
+  background-color: #059669; /* green-600 */
+}
+.type-invitation {
+  background-color: #7c3aed; /* purple-600 */
+}
+.type-admin {
+  background-color: #ea580c; /* orange-600 */
+}
 </style>
 
 <script>
@@ -270,7 +289,6 @@ export default {
     totalPages() {
       return Math.max(1, Math.ceil(this.filteredLetters.length / this.perPage));
     },
-    // In the computed section, update the filteredLetters method
     filteredLetters() {
       let filtered = this.letters.filter(letter => {
         const matchesTitle = letter.title?.toLowerCase().includes(this.searchQuery.toLowerCase()) ?? false;
@@ -286,29 +304,31 @@ export default {
             false
           ) : true;
         
-        const letterDate = new Date(letter.date);
-        const matchesDateRange = (!this.dateRange.start || letterDate >= new Date(this.dateRange.start)) &&
-                               (!this.dateRange.end || letterDate <= new Date(this.dateRange.end));
+        // Updated date filtering logic using letter.date
+        const letterDate = letter.date ? new Date(letter.date) : null;
+        const startDate = this.dateRange.start ? new Date(this.dateRange.start) : null;
+        const endDate = this.dateRange.end ? new Date(this.dateRange.end) : null;
         
-        return matchesTitle && matchesSubject && matchesType && matchesRecipient && matchesDateRange;
+        const matchesDateRange = !letterDate ? false :
+          (!startDate || letterDate >= startDate) &&
+          (!endDate || letterDate <= endDate);
+        
+        return matchesTitle && matchesSubject && matchesType && matchesRecipient && 
+          ((!startDate && !endDate) || matchesDateRange);
       });
-    
+
       // Prefer sorting by created_at or id if available
       filtered.sort((a, b) => {
-        // If created_at exists, use it
         if (a.created_at && b.created_at) {
           return new Date(b.created_at) - new Date(a.created_at);
         }
-        // Otherwise, fallback to id (assuming higher id is newer)
         if (a.id && b.id) {
           return b.id - a.id;
         }
-        // Fallback to date
         return new Date(b.date) - new Date(a.date);
       });
       return filtered;
     },
-
     displayedPages() {
       const pages = [];
       const maxVisiblePages = 5;
@@ -363,9 +383,16 @@ export default {
     formatDateForInput(dateString) {
       if (!dateString) return '';
       try {
+        // Handle both ISO date string and regular date string
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
-        return date.toISOString().split('T')[0];
+        
+        // Format to YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
       } catch (error) {
         console.error('Date formatting error:', error);
         return '';
@@ -421,21 +448,26 @@ export default {
       }
     },
 
-    // In addLetter method - Remove the recipient validation
     async addLetter(letterData) {
       try {
         const formattedData = {
-          title: letterData.title?.trim(),
-          subject: letterData.subject?.trim(),
-          type: letterData.type,
+          title: String(letterData.title?.trim() || ''),
+          subject: String(letterData.subject?.trim() || ''),
+          type: String(letterData.type || ''),
           date: letterData.date ? this.formatDateForInput(letterData.date) : this.formatDateForInput(new Date()),
-          // Use IDs directly from form data
-          recipients: letterData.recipients.filter(r => r !== null), // Add filter to remove null entries
-          content: letterData.content?.trim(),
-          sender_name: letterData.sender_name?.trim(),
-          sender_position: letterData.sender_position?.trim()
+          content: String(letterData.content?.trim() || ''),
+          sender_name: String(letterData.sender_name?.trim() || ''),
+          sender_position: String(letterData.sender_position?.trim() || ''),
+          // Ensure recipients is properly formatted
+          recipients: letterData.recipients
+            .filter(r => r !== null)
+            .map(recipient => ({
+              id: recipient.id,
+              name: String(recipient.name || ''),
+              position: String(recipient.position || '')
+            }))
         };
-
+    
         const response = await apiClient.post('/letters/', formattedData);
         
         if (response?.data?.success) {
@@ -459,15 +491,20 @@ export default {
           }
         });
 
-        // Handle different response formats
         if (response.data) {
           // If response.data is an array directly
           if (Array.isArray(response.data)) {
-            this.letters = response.data;
+            this.letters = response.data.map(letter => ({
+              ...letter,
+              type: letter.type || 'Unknown Type' // Ensure type is always set
+            }));
           }
           // If response.data has a data property that's an array
           else if (Array.isArray(response.data.data)) {
-            this.letters = response.data.data;
+            this.letters = response.data.data.map(letter => ({
+              ...letter,
+              type: letter.type || 'Unknown Type' // Ensure type is always set
+            }));
             
             if (response.data.meta) {
               this.pagination = response.data.meta;
@@ -509,22 +546,18 @@ export default {
     confirmDelete(id) {
       this.confirmDeleteId = id;
       this.showDeleteConfirmModal = true;
+      this.showDeleteSuccess = false; // <-- Add this line to hide success message when opening confirmation modal
     },
 
-    async deleteLetter() {
+    async deleteLetter(id) {
       try {
-        if (!this.confirmDeleteId) return;
-        
-        const response = await apiClient.delete(`/letters/${this.confirmDeleteId}`);
-        if (response.data.success) {
-          this.showDeleteConfirmModal = false;
-          this.showDeleteSuccess = true;
-          await this.fetchLetters();
-          
-          setTimeout(() => {
-            this.showDeleteSuccess = false;
-          }, 2000);
-        }
+        await apiClient.delete(`/letters/${id}`);
+        this.showDeleteConfirmModal = false;
+        this.showDeleteSuccess = true;
+        this.fetchLetters(); // Refresh the list immediately
+        setTimeout(() => {
+          this.showDeleteSuccess = false;
+        }, 1500);
       } catch (error) {
         console.error('Delete error:', error);
         alert(error.response?.data?.message || 'Failed to delete letter');
@@ -574,7 +607,24 @@ export default {
 
     // Add edit modal method
     openEditModal(letter) {
-      this.selectedLetter = { ...letter };
+      // Normalize type before passing to modal
+      const typeMap = {
+        'memo': 'Memo',
+        'endorsement': 'Endorsement',
+        'invitation_meeting': 'Invitation Meeting',
+        'invitation meeting': 'Invitation Meeting',
+        'letter_to_admin': 'Letter to Admin',
+        'letter to admin': 'Letter to Admin',
+        'Memo': 'Memo',
+        'Endorsement': 'Endorsement',
+        'Invitation Meeting': 'Invitation Meeting',
+        'Letter to Admin': 'Letter to Admin'
+      };
+      this.selectedLetter = {
+        ...letter,
+        type: typeMap[letter.type?.toLowerCase().replace(/_/g, ' ')] || ''
+      };
+      this.editMode = true;
       this.showEditModal = true;
     },
 
