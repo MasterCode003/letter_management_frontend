@@ -334,10 +334,10 @@ export default {
     },
   },
   mounted() {
-    this.initData();
+    this.initializeData();
   },
   methods: {
-    async initData() {
+    async initializeData() {
       try {
         await this.fetchLetters();
         await this.fetchRecipients();
@@ -449,83 +449,7 @@ export default {
         console.error('Error adding letter:', error);
         throw error;
       }
-    },
-
-    // In updateLetter method
-    async updateLetter(letterData) {
-      try {
-        // Add comprehensive validation
-        if (!letterData.id) throw new Error('Letter ID required');
-        
-        const requiredFields = {
-          title: letterData.title?.trim(),
-          type: letterData.type?.trim(),
-          subject: letterData.subject?.trim(),
-          content: letterData.content?.trim()
-        };
-        
-        for (const [field, value] of Object.entries(requiredFields)) {
-          if (!value) throw new Error(`${field} is required`);
-        }
-
-    
-        // Keep only this single declaration:
-        const recipients = letterData.recipients
-          .filter(r => r !== null)
-          .map(recipient => {
-            if (typeof recipient === 'object') return recipient;
-            const found = this.recipients.find(r => r.id === recipient);
-            return found ? { name: found.name, position: found.position } : null;
-          })
-          .filter(Boolean);
-
-        if (recipients.length === 0) {
-          throw new Error('At least one recipient with a name is required');
-        }
-
-        const formattedData = {
-          id: letterData.id,
-          title: letterData.title.trim(),
-          subject: letterData.subject?.trim() || '',  // Provide default empty string
-          type: letterData.type || 'Business Letter',  // Provide default type
-          date: this.formatDateForInput(letterData.date || new Date()),
-          recipients: recipients,
-          content: letterData.content?.trim() || '',  // Provide default empty string
-          sender_name: letterData.sender_name?.trim() || '',  // Provide default empty string
-          sender_position: letterData.sender_position?.trim() || ''  // Provide default empty string
-        };
-
-        const response = await apiClient.put(`/letters/${letterData.id}`, formattedData);
-        
-        if (response.data?.success) {
-          await this.fetchLetters();
-          this.showModal = false;
-          return response.data;
-        }
-
-        throw new Error(response.data?.message || 'Update failed');
-      } catch (error) {
-        console.error('Error updating letter:', error);
-        throw error;
-      }
-    },
-
-    
-      // Remove this stray block:
-      // try {
-      //   const response = await apiClient.get(`/letters?${query}`);
-      //   this.letters = response.data.data;
-      //
-      //   if (response.data.meta) {
-      //     this.pagination = response.data.meta;
-      //     this.currentPage = response.data.meta.current_page;
-      //   }
-      // } catch (error) {
-      //   console.error('Refresh error:', error);
-      //   alert('Failed to refresh letters');
-      // }
-    },
-
+    }, // Keep this comma
     async fetchLetters() {
       try {
         this.isFetching = true;
@@ -534,22 +458,36 @@ export default {
             sort: '-updated_at'
           }
         });
-        
-        if (response.data?.success) {
-          this.letters = response.data.data;
-          
-          if (response.data.meta) {
-            this.pagination = response.data.meta;
-            this.currentPage = response.data.meta.current_page;
+
+        // Handle different response formats
+        if (response.data) {
+          // If response.data is an array directly
+          if (Array.isArray(response.data)) {
+            this.letters = response.data;
+          }
+          // If response.data has a data property that's an array
+          else if (Array.isArray(response.data.data)) {
+            this.letters = response.data.data;
+            
+            if (response.data.meta) {
+              this.pagination = response.data.meta;
+              this.currentPage = response.data.meta.current_page;
+            }
+          }
+          // If response.data is an object with letters
+          else if (typeof response.data === 'object') {
+            this.letters = Object.values(response.data);
+          }
+          else {
+            throw new Error('Unexpected response format');
           }
         } else {
-          throw new Error(response.data?.message || 'Invalid response format');
+          this.letters = [];
         }
       } catch (error) {
         console.error('Refresh error:', error);
-        
-        // More detailed error handling
         let errorMessage = 'Failed to fetch letters';
+        
         if (error.response) {
           if (error.response.status === 500) {
             errorMessage = 'Server error occurred. Please try again later.';
@@ -560,14 +498,7 @@ export default {
           errorMessage = error.message;
         }
         
-        // Show error to user
-        this.$notify({
-          title: 'Error',
-          text: errorMessage,
-          type: 'error'
-        });
-        
-        // Set empty state
+        alert(errorMessage);
         this.letters = [];
       } finally {
         this.isFetching = false;
@@ -691,7 +622,7 @@ export default {
       }
     }
   } // <-- This closes the methods object. No comma needed if this is the last property in export default.
- // <-- This closes the export default object.
+} // <-- This closes the export default object.
 
 </script>
 

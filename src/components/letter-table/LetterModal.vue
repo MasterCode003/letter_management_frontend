@@ -88,10 +88,10 @@
                           @change="clearError('type')"
                         >
                           <option value="" disabled>Select Type</option>
-                          <option value="memo">Memo</option>
-                          <option value="endorsement">Endorsement</option>
-                          <option value="invitation_meeting">Invitation Meeting</option>
-                          <option value="letter_to_admin">Letter to Admin</option>
+                          <option value="Memo">Memo</option>
+                          <option value="Endorsement">Endorsement</option>
+                          <option value="Invitation Meeting">Invitation Meeting</option>
+                          <option value="Letter to Admin">Letter to Admin</option>
                         </select>
                         <ValidationWarning v-if="errors.type" :message="errors.type" />
                         <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -317,11 +317,11 @@
           <div class="sm:flex sm:items-start">
             <div class="mt-3 text-center sm:mt-0 sm:text-left">
               <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                Confirm Update
+                Confirm Create
               </h3>
               <div class="mt-2">
                 <p class="text-sm text-gray-500">
-                  Are you sure you want to update this letter?
+                  Are you sure to create new letter?
                 </p>
               </div>
             </div>
@@ -661,7 +661,7 @@ export default {
     
       // Validate type with specific values
       // Update valid types to match backend expectations
-      const validTypes = ['memo', 'endorsement', 'invitation_meeting', 'letter_to_admin'];
+      const validTypes = ['Memo', 'Endorsement', 'Invitation Meeting', 'Letter to Admin'];
       if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
         this.errors.type = 'Please select a valid type';
         isValid = false;
@@ -716,9 +716,16 @@ export default {
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
+        // Ensure recipients are sent as integer IDs
+        const payload = {
+          ...this.letterForm,
+          recipients: this.letterForm.recipients
+            .map(r => parseInt(r.id, 10))
+            .filter(id => !isNaN(id))
+        };
         const endpoint = this.editMode ? `/letters/${this.letter.id}` : '/letters';
         const method = this.editMode ? 'put' : 'post';
-        const response = await apiClient[method](endpoint, this.letterForm);
+        const response = await apiClient[method](endpoint, payload);
         this.showConfirmModal = false;
         this.showSuccess = true;
         if (this.editMode) {
@@ -735,11 +742,6 @@ export default {
       }
     },
 
-    // Add this for template saving
-    async handleQuickSave() {
-      this.showTemplateModal = true;
-    },
-
     async confirmQuickSave() {
       if (!this.templateName) {
         this.errors.templateName = 'Template name is required';
@@ -748,14 +750,17 @@ export default {
 
       try {
         this.isSubmitting = true;
-        await apiClient.post('/templates', {
+        // Ensure recipients are sent as integer IDs
+        const payload = {
           name: this.templateName,
-          ...this.letterForm
-        });
-        
+          ...this.letterForm,
+          recipients: this.letterForm.recipients
+            .map(r => parseInt(r.id, 10))
+            .filter(id => !isNaN(id))
+        };
+        await apiClient.post('/templates', payload);
         this.showTemplateModal = false;
         this.showSuccess = true;
-        
       } catch (error) {
         console.error('Error saving template:', error);
         this.errors.submit = 'Failed to save template. Please try again.';
