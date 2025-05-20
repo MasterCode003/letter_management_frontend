@@ -569,6 +569,10 @@ export default {
       this.isExporting = false;
     },
 
+    openEditModal(letter) {
+      this.selectedLetter = letter;
+      this.showEditModal = true;
+    },
     previewPDF(letter) {
       this.selectedLetter = letter;
       this.showPreviewModal = true;

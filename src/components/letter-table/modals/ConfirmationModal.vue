@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
     <div class="bg-white rounded-lg p-6 w-96">
       <h3 class="text-lg font-medium mb-4">{{ title }}</h3>
       <p class="text-gray-600 mb-6">{{ message }}</p>
@@ -25,6 +25,10 @@
 export default {
   name: 'ConfirmationModal',
   props: {
+    show: {
+      type: Boolean,
+      required: true
+    },
     title: {
       type: String,
       default: 'Confirm Action'
@@ -36,12 +40,4 @@ export default {
   },
   emits: ['confirm', 'cancel']
 }
-</script>
-
-<script setup>
-defineProps({
-  show: Boolean
-})
-
-defineEmits(['confirm', 'cancel'])
 </script>

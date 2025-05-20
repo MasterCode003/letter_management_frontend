@@ -1,21 +1,17 @@
 
 <template>
   <transition name="fade">
-    <div v-if="modelValue" class="fixed inset-0 z-50 overflow-hidden">
+    <div v-if="modelValue" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div class="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity"></div>
       <div class="flex items-center justify-center min-h-screen p-4">
-        <!-- Main modal container -->
         <div class="relative bg-white rounded-xl shadow-2xl w-[90%] h-[90vh] max-w-[1300px] overflow-hidden">
           <!-- Header with gradient -->
           <div class="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4 border-b z-10">
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-bold text-white">Edit Letter</h2>
-              
               <!-- Title input centered with white background -->
-              <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
-                  <!-- Replace letter.title with localLetter.title -->
                   <input
                     v-model="letter.title"
                     :class="{'border-red-500': errors.title}"
@@ -28,12 +24,11 @@
                   <ValidationWarning v-if="errors.title" :message="errors.title" />
                 </div>
               </div>
-              
-              <!-- Action buttons with updated styling -->
+              <!-- Action buttons -->
               <div class="flex items-center gap-4">
                 <button
                   type="button"
-                  @click="handleBack"
+                  @click="$emit('close')"
                   class="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 flex items-center gap-2 transition-all"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,9 +38,8 @@
                 </button>
                 <button
                   type="button"
-                  @click="showConfirmModal = true"
-                  :disabled="isSubmitting"
-                  class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2 transition-all disabled:opacity-50"
+                  @click="handleBack"
+                  class="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 flex items-center gap-2 transition-all"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -58,22 +52,18 @@
                   :disabled="isSubmitting"
                   class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 transition-all disabled:opacity-50"
                 >
-                  <!-- Changed icon to bookmark -->
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v14l7-7 7 7V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/>
                   </svg>
-                  {{ editMode ? 'Update Template' : 'Save as Template' }}
+                  Save as Template
                 </button>
               </div>
             </div>
           </div>
-        </div>
-
           <!-- Content with updated styling -->
           <div class="h-full overflow-y-auto pt-20 px-8 pb-8 bg-gray-50">
             <div class="bg-white rounded-xl shadow-sm p-8">
               <form @submit.prevent="handleSubmit" class="space-y-8">
-                <!-- Letter Type -->
                 <!-- Letter Type and Template in a row -->
                 <div class="flex items-center gap-8">
                   <!-- Type Field -->
@@ -81,21 +71,21 @@
                     <label class="font-medium w-24 text-lg">Type:</label>
                     <div class="flex flex-col">
                       <div class="relative">
-                        <!-- In the type select element -->
-                        <!-- Change this in the template section -->
-                        <!-- Change the select element -->
-                        <!-- Replace all other instances of letter. with localLetter. -->
+                        <!-- Update the type dropdown to properly bind and show selected value -->
                         <select
-                          v-model="localLetter.type"
+                          v-model="letter.type"
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                          @change="handleTypeChange"
+                          @change="clearError('type')"
                         >
                           <option value="" disabled>Select Type</option>
-                          <option value="Memo">Memo</option>
-                          <option value="Endorsement">Endorsement</option>
-                          <option value="Invitation Meeting">Invitation Meeting</option>
-                          <option value="Letter to Admin">Letter to Admin</option>
+                          <option 
+                            v-for="type in letterTypes" 
+                            :key="type.value"
+                            :value="type.value"
+                          >
+                            {{ type.label }}
+                          </option>
                         </select>
                         <ValidationWarning v-if="errors.type" :message="errors.type" />
                         <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -105,49 +95,11 @@
                         </div>
                       </div>
                     </div>
-                    <!-- Template Field (right next to Type) -->
-                
-                    
-                   
-                    <div class="flex items-center gap-4 ml-8">
-                      <label class="font-medium w-24 text-lg">Template:</label>
-                      <div class="relative">
-                        <!-- In the template section, update the template select element -->
-                        <select
-                          v-model="selectedTemplate"
-                          class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                          @change="handleTemplateChange"
-                          :disabled="isTemplateLoading"
-                        >
-                          <option value="">Select Template</option>
-                          <option 
-                            v-for="template in templates" 
-                            :key="template.id" 
-                            :value="template.id"
-                          >
-                            {{ template.name }}
-                          </option>
-                        </select>
-                        <div 
-                          v-if="isTemplateLoading" 
-                          class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                        >
-                          <div class="bg-white p-8 rounded-lg shadow-lg flex flex-col items-center">
-                            <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span class="mt-4 text-gray-700">Loading Template...</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                  <!-- End Letter Type and Template row -->
                 </div>
 
                 <!-- Recipients Section -->
-                <div class="space-y-4"></div>
+                <div class="space-y-4">
                   <div class="flex items-center gap-4">
                     <label class="font-medium w-24 text-lg">FOR:</label>
                     <button
@@ -161,12 +113,10 @@
                       Add Recipient
                     </button>
                   </div>
-
-                  <!-- Change letter.recipients to localLetter.recipients -->
-                  <div v-for="(recipient, index) in localLetter.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                  <div v-for="(recipient, index) in letter.recipients" :key="index" class="flex items-center gap-4 ml-24">
                     <div class="flex-1">
-
                       <div class="relative flex items-center">
+                        <!-- Update recipients dropdown to show selected recipients -->
                         <select
                           v-model="recipient.id"
                           @change="updateRecipient(index, $event.target.value)"
@@ -175,17 +125,25 @@
                         >
                           <option value="">Select Recipient</option>
                           <option
-                            v-for="r in getAvailableRecipients(index)"
+                            v-for="r in allRecipients"
                             :key="r.id"
                             :value="r.id"
+                            :selected="recipient.id === r.id"
                           >
                             {{ r.name }} - {{ r.position }}
                           </option>
                         </select>
+                        <button
+                          v-if="letter.recipients.length > 1"
+                          @click="removeRecipient(index)"
+                          type="button"
+                          class="absolute right-[-40px] p-1.5 text-red-500 hover:text-white hover:bg-red-500 rounded-full transition-all duration-200"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5">
+                            <path d="M6 21h12V7H6v14zm2.46-9.12l1.41-1.41L12 12.59l2.12-2.12l1.41 1.41L13.41 14l2.12 2.12l-1.41 1.41L12 15.41l-2.12 2.12l-1.41-1.41L10.59 14l-2.13-2.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4h-3.5z" fill="currentColor"/>
+                          </svg>
+                        </button>
                       </div>
-
-                      <!-- Remove this duplicate select element -->
-                      <!-- Remove the merge conflict marker >>>>>>> parent of 2dd0a0e -->
                       <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                         <span
                           class="cursor-pointer text-blue-600 underline"
@@ -204,14 +162,15 @@
                       </div>
                     </div>
                   </div>
-                  
+                  <ValidationWarning v-if="errors.recipients" :message="errors.recipients" />
+                </div>
 
                 <!-- Subject field -->
                 <div class="flex items-center gap-4">
                   <label class="font-medium w-24 text-lg">Subject:</label>
                   <div class="flex flex-col flex-1">
                     <input
-                      v-model="localLetter.subject"
+                      v-model="letter.subject"
                       type="text"
                       required
                       class="border rounded-md px-4 py-2"
@@ -227,7 +186,7 @@
                   <label class="font-medium w-24 text-lg">Date:</label>
                   <div class="flex flex-col">
                     <input
-                      v-model="localLetter.date"
+                      v-model="letter.date"
                       type="date"
                       required
                       class="w-[200px] border rounded-md px-4 py-2"
@@ -244,7 +203,7 @@
                   <div class="flex-1">
                     <div class="relative">
                       <QuillEditor
-                        v-model:content="localLetter.content"
+                        v-model:content="letter.content"
                         contentType="html"
                         :options="editorOptions"
                         class="h-[350px] min-h-[200px] border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all"
@@ -262,13 +221,11 @@
                 <!-- Sender Information section -->
                 <div class="space-y-4 mt-8 pt-6 border-t">
                   <h3 class="font-medium text-lg">Sender Information</h3>
-                  
-                  <!-- Sender Name -->
                   <div class="flex items-center gap-4">
                     <label class="font-medium w-24 text-lg">Name:</label>
                     <div class="flex flex-col flex-1">
                       <input
-                        v-model="localLetter.sender_name"
+                        v-model="letter.sender_name"
                         type="text"
                         required
                         class="border rounded-md px-4 py-2"
@@ -278,13 +235,11 @@
                       <ValidationWarning v-if="errors.sender_name" :message="errors.sender_name" />
                     </div>
                   </div>
-                  
-                  <!-- Sender Position -->
                   <div class="flex items-center gap-4">
                     <label class="font-medium w-24 text-lg">Position:</label>
                     <div class="flex flex-col flex-1">
                       <input
-                        v-model="localLetter.sender_position"
+                        v-model="letter.sender_position"
                         type="text"
                         required
                         class="border rounded-md px-4 py-2"
@@ -299,7 +254,8 @@
             </div>
           </div>
         </div>
-      </div> <!-- Add this closing div -->
+      </div>
+    </div>
   </transition>
 
   <!-- Success Message Modal -->
@@ -367,6 +323,7 @@ import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import ValidationWarning from '@/components/common/ValidationWarning.vue'
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
+import apiClient from '@/utils/apiClient' // <-- Add this line
 
 export default defineComponent({
   name: 'LetterEditModal',
@@ -385,28 +342,11 @@ export default defineComponent({
     editMode: Boolean
   },
   emits: ['update:modelValue', 'refreshLetters', 'close', 'update:editMode'],
-  
   data() {
-<<<<<<< HEAD
-=======
-    const defaultForm = {
-      title: '',
-      type: '',
-      subject: '',
-      date: new Date().toISOString().split('T')[0],
-      recipients: [{ id: '', name: '', position: '' }],
-      content: '',
-      sender_name: '',
-      sender_position: '',
-      pdfPreviewIndex: null // Add index tracking for PDF preview button
-    };
-
->>>>>>> parent of 5a33d4d (adjust the designs)
     return {
       showConfirmModal: false,
       showSuccess: false,
       successMessage: 'Updated successfully!',
-      localLetter: this.initializeLocalLetter(),
       errors: {},
       isSubmitting: false,
       templateName: '',
@@ -415,74 +355,33 @@ export default defineComponent({
         theme: 'snow',
         modules: {
           toolbar: [
-<<<<<<< HEAD
             ['bold', 'italic', 'underline'],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
             ['clean']
           ]
-        }
-=======
-            ['bold', 'italic', 'underline', 'strike'],
-            ['blockquote', 'code-block'],
-            [{ 'header': 1 }, { 'header': 2 }],
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-            [{ 'script': 'sub' }, { 'script': 'super' }],
-            [{ 'indent': '-1' }, { 'indent': '+1' }],
-            [{ 'direction': 'rtl' }],
-            [{ 'size': ['small', false, 'large', 'huge'] }],
-            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ 'font': [] }],
-            [{ 'align': [] }],
-            ['clean']
-          ]
         },
-        placeholder: 'Compose your letter...',
-        theme: 'snow'
+        placeholder: 'Compose your letter...'
       },
-      letterForm: this.letter ? {
-        title: this.letter.title || '',
-        type: this.letter.type || '',
-        subject: this.letter.subject || '',
-        date: this.letter.date ? this.formatDateForInput(this.letter.date) : defaultForm.date,
-        recipients: this.letter.recipients ? 
-          (Array.isArray(this.letter.recipients) ? 
-            this.letter.recipients.map(r => ({
-              id: r.id || r || '',
-              name: r.name || '',
-              position: r.position || ''
-            })) : 
-            [{ 
-              id: this.letter.recipients?.id || this.letter.recipients || '',
-              name: this.letter.recipients?.name || '',
-              position: this.letter.recipients?.position || ''
-            }]
-          ) : defaultForm.recipients,
-        content: this.letter.content || '',
-        sender_name: this.letter.sender_name || '',
-        sender_position: this.letter.sender_position || ''
-      } : { ...defaultForm },
-      errors: {},
-      showConfirmModal: false,
-      showTemplateModal: false,  // Add this line
-      showSuccess: false,  // Keep this for controlling visibility
+      letterTypes: [
+        { value: 'Memo', label: 'Memo' },
+        { value: 'Endorsement', label: 'Endorsement' },
+        { value: 'Invitation Meeting', label: 'Invitation Meeting' },
+        { value: 'Letter to Admin', label: 'Letter to Admin' }
+      ],
+      allRecipients: [],
       recipientsList: [],
-      isSubmitting: false,
-      // Add these lines:
-      templates: [], // List of templates (should be fetched from API if needed)
-      selectedTemplate: '', // Currently selected template ID
-      isTemplateLoading: false, // <-- Add this line
+      templates: [],
+      selectedTemplate: '',
+      isTemplateLoading: false,
+      pdfPreviewIndex: null
     }
   },
   computed: {
     filteredRecipientsList() {
-      // Get all currently selected recipient IDs
-      const selectedIds = this.letterForm.recipients
+      const selectedIds = this.letter.recipients
         .filter(r => r.id)
         .map(r => r.id);
-      
-      // Filter out recipients that are already selected
-      return this.recipientsList.filter(recipient => 
+      return this.recipientsList.filter(recipient =>
         !selectedIds.includes(recipient.id)
       );
     }
@@ -491,47 +390,24 @@ export default defineComponent({
     try {
       await this.fetchCSRFToken();
       await this.fetchRecipients();
-      
+
       const templatesResponse = await apiClient.get('/templates');
       this.templates = templatesResponse.data.data || templatesResponse.data;
 
       if (this.letter && Object.keys(this.letter).length > 0) {
         this.$emit('update:editMode', true);
-        
-        // Initialize localLetter with prop data
-        this.localLetter = {
-          ...this.letter,
-          date: this.formatDateForInput(this.letter.date || new Date()),
-          type: typeMap[this.letter.type] || this.letter.type || ''
-        };
-      } else {
-        // Initialize with default values
-        this.localLetter.date = this.formatDateForInput(new Date());
->>>>>>> parent of 5a33d4d (adjust the designs)
+        // No need to set letter.type or letter.recipients, they come from prop
       }
+    } catch (error) {
+      console.error('Error initializing letter edit modal:', error);
     }
   },
-
   methods: {
-    initializeLocalLetter() {
-      return {
-        title: '',
-        subject: '',
-        type: '',
-        date: new Date().toISOString().split('T')[0],
-        content: '',
-        sender_name: '',
-        sender_position: '',
-        recipients: []
-      }
-    },
-    
     clearError(field) {
       if (this.errors?.[field]) {
         delete this.errors[field]
       }
     },
-
     onContentInput() {
       this.clearError('content');
     },
@@ -542,6 +418,48 @@ export default defineComponent({
       } else {
         templateId = eventOrId;
       }
+    },
+    async fetchCSRFToken() {
+      return Promise.resolve();
+    },
+    async fetchRecipients() {
+      try {
+        const response = await apiClient.get('/api/recipients');
+        this.allRecipients = response.data || [];
+        this.recipientsList = [...this.allRecipients];
+      } catch (error) {
+        console.error('Failed to fetch recipients:', error);
+        this.allRecipients = [];
+        this.recipientsList = [];
+      }
+    },
+    formatDateForInput(date) {
+      if (!date) return '';
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
+    updateRecipient(index, value) {
+      const selected = this.allRecipients.find(r => r.id === value);
+      if (selected) {
+        this.letter.recipients[index] = { ...selected };
+      } else {
+        this.letter.recipients[index] = { id: value, name: '', position: '' };
+      }
+    },
+    addRecipient() {
+      this.letter.recipients.push({ id: '', name: '', position: '' });
+    },
+    removeRecipient(index) {
+      this.letter.recipients.splice(index, 1);
+    },
+    showPdfPreviewButton(index) {
+      this.pdfPreviewIndex = index;
+    },
+    previewRecipientPdf(recipient) {
+      // Implement your preview logic here
     }
   }
 })

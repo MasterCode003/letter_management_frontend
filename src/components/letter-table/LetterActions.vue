@@ -31,36 +31,43 @@
       </svg>
     </ActionButton>
 
+    <!-- Trash Button -->
+    <ActionButton 
+      variant="delete"
+      @click="handleDelete"
+      title="Delete Letter"
+      class="group relative hover:bg-red-600 hover:text-white transition-colors duration-200"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"></path>
+      </svg>
+    </ActionButton>
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      v-if="showDeleteConfirm"
+      title="Confirm Delete"
+      message="Are you sure you want to delete this letter?"
+      @confirm="confirmDelete"
+      @cancel="showDeleteConfirm = false"
+    />
+
+    <!-- Success Message Modal -->
+    <SuccessMessageModal
+      v-if="showDeleteSuccess"
+      message="Letter deleted successfully!"
+      @close="showDeleteSuccess = false"
+    />
+
     <!-- Add PreviewOptionsModal -->
     <PreviewOptionsModal
       v-if="showPreviewModal"
       :letter="letter"
-<<<<<<< HEAD
       @preview-pdf="handlePreviewPDF"
       @export-word="handleExportWord"
-=======
-      @preview="handlePreviewPDF"
-      @convert-pdf-to-word="handleExportWord"
->>>>>>> parent of 5a33d4d (adjust the designs)
       @close="showPreviewModal = false"
     />
-    
-    <!-- Remove the SuccessMessageModal component from here -->
 
-<<<<<<< HEAD
-    <!-- Delete Button -->
-    <ActionButton 
-      variant="delete"
-      @click="$emit('delete', letter.id)"
-      title="Delete Letter"
-      class="group relative hover:bg-red-600 hover:text-white transition-colors duration-200"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-5 h-5">
-        <rect x="32" y="48" width="448" height="80" rx="32" ry="32" fill="currentColor"></rect>
-        <path d="M74.45 160a8 8 0 0 0-8 8.83l26.31 252.56a1.5 1.5 0 0 0 0 .22A48 48 0 0 0 140.45 464h231.09a48 48 0 0 0 47.67-42.39v-.21l26.27-252.57a8 8 0 0 0-8-8.83zm248.86 180.69a16 16 0 1 1-22.63 22.62L256 318.63l-44.69 44.68a16 16 0 0 1-22.63-22.62L233.37 296l-44.69-44.69a16 16 0 0 1 22.63-22.62L256 273.37l44.68-44.68a16 16 0 0 1 22.63 22.62L278.62 296z" fill="currentColor"></path>
-      </svg>
-    </ActionButton>
-=======
     <!-- Error Message Modal -->
     <div v-if="showErrorMessage" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
@@ -79,14 +86,21 @@
       </div>
     </div>
 
-    <!-- Loading modal -->
+    <!-- Loading modal for Word export -->
     <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg flex items-center gap-3">
         <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
         <span>Exporting to Word...</span>
       </div>
     </div>
->>>>>>> parent of 5a33d4d (adjust the designs)
+
+    <!-- Loading modal for PDF preview -->
+    <div v-if="isLoadingPDF" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg flex items-center gap-3">
+        <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
+        <span>Generating PDF preview...</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -99,6 +113,7 @@ import {
   ArrowPathIcon,
   DocumentIcon 
 } from '@heroicons/vue/24/solid'
+import ConfirmationModal from './modals/ConfirmationModal.vue'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import PreviewOptionsModal from './modals/PreviewOptionsModal.vue'
 import apiClient from '@/utils/apiClient';
@@ -111,9 +126,10 @@ export default {
     TrashIcon,
     ArrowPathIcon,
     DocumentIcon,
-    // Remove SuccessMessageModal from components
     CSpinner,
-    PreviewOptionsModal
+    PreviewOptionsModal,
+    ConfirmationModal,
+    SuccessMessageModal
   },
   props: {
     letter: {
@@ -129,7 +145,9 @@ export default {
       isConverting: false,
       isLoadingPDF: false,
       showErrorMessage: false,
-      errorMessage: ''
+      errorMessage: '',
+      showDeleteConfirm: false,
+      showDeleteSuccess: false
     }
   },
   methods: {
@@ -152,28 +170,20 @@ export default {
           throw new Error('No letter selected');
         }
 
-        // Normalize the letter type and convert to lowercase for comparison
         const normalizedType = this.letter.type?.trim().toLowerCase();
-        console.log('Letter type:', normalizedType);
-
-        // Map letter types to their corresponding endpoints (using lowercase keys)
         const endpointMap = {
           'memo': `/memos/${this.letter.id}/preview-pdf`,
           'endorsement': `/endorsements/${this.letter.id}/preview-pdf`,
           'letter to admin': `/letters-to-admin/${this.letter.id}/preview-pdf`,
           'invitation meeting': `/invitation-meetings/${this.letter.id}/preview-pdf`,
-          // Add snake_case variants
           'letter_to_admin': `/letters-to-admin/${this.letter.id}/preview-pdf`,
           'invitation_meeting': `/invitation-meetings/${this.letter.id}/preview-pdf`
         };
 
         const endpoint = endpointMap[normalizedType];
         if (!endpoint) {
-          console.error('Type mapping failed for:', normalizedType);
           throw new Error(`Invalid letter type: ${this.letter.type}`);
         }
-
-        console.log('Using endpoint:', endpoint); // Debug log
 
         const response = await apiClient.get(endpoint, {
           responseType: 'blob',
@@ -183,15 +193,7 @@ export default {
           baseURL: 'http://192.168.5.94:8000'
         });
 
-        // Add response validation
-        if (response.status !== 200) {
-          console.error('Unexpected response:', response);
-          throw new Error(`Server returned status ${response.status}`);
-        }
-
-        // Verify we received PDF content
-        if (!response.headers['content-type'].includes('application/pdf')) {
-          console.warn('Received non-PDF response:', response.headers, response.data);
+        if (response.status !== 200 || !response.headers['content-type'].includes('application/pdf')) {
           throw new Error('Invalid content type received from server');
         }
 
@@ -199,15 +201,8 @@ export default {
         const url = window.URL.createObjectURL(blob);
         window.open(url, '_blank');
       } catch (error) {
-        console.error('PDF preview error:', {
-          message: error.message,
-          response: error.response?.data,
-          config: error.config
-        });
-        this.errorMessage = error.response?.data?.message || 
-                         error.response?.data?.error ||
-                         error.message || 
-                         'Failed to generate PDF preview. Please try again.';
+        console.error('PDF preview error:', error);
+        this.errorMessage = error.message || 'Failed to generate PDF preview. Please try again.';
         this.showErrorMessage = true;
       }
     },
@@ -239,8 +234,21 @@ export default {
       }
     },
     handleDelete() {
-      this.$emit('delete', this.letter.id);
-      // Remove the success message handling from here
+      this.showDeleteConfirm = true;
+    },
+    async confirmDelete() {
+      try {
+        await apiClient.delete(`/letters/${this.letter.id}`);
+        this.showDeleteConfirm = false;
+        this.showDeleteSuccess = true;
+        setTimeout(() => {
+          this.showDeleteSuccess = false;
+        }, 1500);
+      } catch (error) {
+        console.error('Delete error:', error);
+        this.errorMessage = error.message || 'Failed to delete letter. Please try again.';
+        this.showErrorMessage = true;
+      }
     }
   }
 }
