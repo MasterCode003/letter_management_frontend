@@ -108,7 +108,7 @@
 import { ref, onMounted, computed } from 'vue'
 import RecipientActions from './RecipientActions.vue'
 import RecipientForm from './RecipientForm.vue'
-import { PlusIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'  // Add these imports
 import apiClient from '@/utils/apiClient'
 import { useToast } from 'vue-toastification'
 

@@ -180,22 +180,23 @@
     
     <LetterEditModal
       v-model="showEditModal"
-      :letter="selectedLetter || { 
-        title: '',
-        type: '',
-        subject: '',
-        date: new Date().toISOString().split('T')[0],
-        recipients: [],
-        content: '',
-        sender_name: '',
-        sender_position: ''
-      }"
+      :letter="selectedLetter"
       :edit-mode="editMode"
       @update:edit-mode="val => editMode = val"
       @refresh-letters="fetchLetters"
       @close="resetSelection"
     />
-  
+
+    <!-- Add PreviewOptionsModal -->
+    <PreviewOptionsModal
+      v-if="showPreviewModal"
+      :letter="selectedLetter"
+      :isPreviewLoading="isPreviewLoading"
+      :isExporting="isExporting"
+      @preview-pdf="handlePreviewPDF"
+      @export-word="handleExportWord"
+      @close="closePreviewModal"
+    />
   </div>
 </template>
 
@@ -251,6 +252,8 @@ import Tooltip from 'quill/ui/tooltip'
 // Register required modules
 Quill.register('modules/tooltip', Tooltip)
 
+import PreviewOptionsModal from './modals/PreviewOptionsModal.vue';
+
 export default {
   name: 'LetterTable',
   components: {
@@ -259,12 +262,15 @@ export default {
     SearchFilters,
     TablePagination,
     DeleteConfirmationModal,
-    LetterEditModal
+    LetterEditModal,
+    PreviewOptionsModal  // Add this line
   },
   emits: ['refresh-letters'],
   data() {
     return {
-      isPreviewLoading: false,  // Add this line
+      isPreviewLoading: false,
+      isExporting: false,
+      showPreviewModal: false,
       letters: [],
       recipients: [], // Add this line if not already present
       showModal: false,
@@ -470,16 +476,9 @@ export default {
           content: String(letterData.content?.trim() || ''),
           sender_name: String(letterData.sender_name?.trim() || ''),
           sender_position: String(letterData.sender_position?.trim() || ''),
-          // Ensure recipients is properly formatted
-          recipients: letterData.recipients
-            .filter(r => r !== null)
-            .map(recipient => ({
-              id: recipient.id,
-              name: String(recipient.name || ''),
-              position: String(recipient.position || '')
-            }))
+          recipient_ids: letterData.recipients.map(recipient => recipient.id)
         };
-    
+
         const response = await apiClient.post('/letters/', formattedData);
         
         if (response?.data?.success) {
@@ -499,23 +498,24 @@ export default {
         this.isFetching = true;
         const response = await apiClient.get('/api/letters', {
           params: {
-            sort: '-updated_at'
+            sort: '-updated_at',
+            include: 'recipients' // Add this line to include recipients
           }
         });
 
         if (response.data) {
-          // If response.data is an array directly
           if (Array.isArray(response.data)) {
             this.letters = response.data.map(letter => ({
               ...letter,
-              type: letter.type || 'Unknown Type' // Ensure type is always set
+              type: letter.type || 'Unknown Type',
+              recipients: letter.recipients || []
             }));
           }
-          // If response.data has a data property that's an array
           else if (Array.isArray(response.data.data)) {
             this.letters = response.data.data.map(letter => ({
               ...letter,
-              type: letter.type || 'Unknown Type' // Ensure type is always set
+              type: letter.type || 'Unknown Type',
+              recipients: letter.recipients || []
             }));
             
             if (response.data.meta) {
@@ -640,8 +640,32 @@ export default {
       this.showEditModal = true;
     },
 
-    previewPDF(letter) {
-      // ... your existing previewPDF logic ...
+    async previewPDF(letter) {
+      try {
+        this.isPreviewLoading = true;
+        this.selectedLetter = letter;
+        
+        if (!letter?.id) {
+          throw new Error('Invalid letter ID');
+        }
+
+        const response = await apiClient.get(`/preview/pdf/${letter.id}`, {
+          responseType: 'blob'
+        });
+
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        
+        // Open PDF in new window
+        window.open(url, '_blank');
+        
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Preview error:', error);
+        alert('Failed to generate PDF preview. Please try again.');
+      } finally {
+        this.isPreviewLoading = false;
+      }
     },
 
     async convertPDFToWord(letter) {
@@ -698,5 +722,40 @@ export default {
 } // <-- This closes the export default object.
 
 </script>
+
+async handlePreviewPDF() {
+  this.isPreviewLoading = true;
+  try {
+    await this.previewPDF(this.selectedLetter);
+  } finally {
+    this.isPreviewLoading = false;
+    this.showPreviewModal = false;
+  }
+},
+
+async handleExportWord() {
+  this.isExporting = true;
+  try {
+    await this.convertPDFToWord(this.selectedLetter);
+  } finally {
+    this.isExporting = false;
+    this.showPreviewModal = false;
+  }
+},
+
+closePreviewModal() {
+  this.showPreviewModal = false;
+  this.isPreviewLoading = false;
+  this.isExporting = false;
+},
+
+// Update the existing previewPDF method to show modal
+previewPDF(letter) {
+  this.selectedLetter = letter;
+  this.showPreviewModal = true;
+},
+}
+
+
 
 

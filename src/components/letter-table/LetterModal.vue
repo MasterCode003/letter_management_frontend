@@ -160,23 +160,37 @@
                   </div>
 
               
+                  <!-- In the recipients section -->
                   <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
                     <div class="flex-1">
-                      <select
-                        v-model="recipient.id"
-                        @change="updateRecipient(index, $event.target.value)"
-                        class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
-                        :class="{ 'border-red-500': errors.recipients }"
-                      >
-                        <option value="">Select Recipient</option>
-                        <option
-                          v-for="r in getAvailableRecipients(index)"
-                          :key="r.id"
-                          :value="r.id"
+                      <div class="relative flex items-center">
+                        <select
+                          v-model="recipient.id"
+                          @change="updateRecipient(index, $event.target.value)"
+                          class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
+                          :class="{ 'border-red-500': errors.recipients }"
                         >
-                          {{ r.name }} - {{ r.position }}
-                        </option>
-                      </select>
+                          <option value="">Select Recipient</option>
+                          <option
+                            v-for="r in getAvailableRecipients(index)"
+                            :key="r.id"
+                            :value="r.id"
+                          >
+                            {{ r.name }} - {{ r.position }}
+                          </option>
+                        </select>
+                        <!-- In the recipients section -->
+                        <button
+                          v-if="letterForm.recipients.length > 1"
+                          @click="removeRecipient(index)"
+                          type="button"
+                          class="absolute right-[-40px] p-1.5 text-red-500 hover:text-white hover:bg-red-500 rounded-full transition-all duration-200"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5">
+                            <path d="M6 21h12V7H6v14zm2.46-9.12l1.41-1.41L12 12.59l2.12-2.12l1.41 1.41L13.41 14l2.12 2.12l-1.41 1.41L12 15.41l-2.12 2.12l-1.41-1.41L10.59 14l-2.13-2.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4h-3.5z" fill="currentColor"/>
+                          </svg>
+                        </button>
+                      </div>
                       <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                         <!-- Make name clickable -->
                         <span
@@ -196,16 +210,6 @@
                         </button>
                       </div>
                     </div>
-                    <button
-                      v-if="letterForm.recipients.length > 1"
-                      @click="removeRecipient(index)"
-                      type="button"
-                      class="text-red-600 hover:text-red-800"
-                    >
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
                   </div>
                   <ValidationWarning v-if="errors.recipients" :message="errors.recipients" />
                 </div>

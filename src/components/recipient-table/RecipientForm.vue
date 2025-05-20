@@ -1,91 +1,110 @@
 <template>
   <div class="fixed inset-0 z-50 overflow-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-xl" style="backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);"></div>
+    <!-- Improved backdrop with more blur and opacity -->
+    <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-2xl transition-opacity"></div>
     
     <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white/95 rounded-lg shadow-xl p-6 backdrop-blur-lg border border-white/20 w-full max-w-md relative transform transition-all">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-xl font-semibold">{{ recipient ? 'Edit Recipient' : 'Add New Recipient' }}</h2>
-          <button @click="$emit('close')" class="text-gray-500 hover:text-gray-700">
+      <!-- Enhanced modal container with gradient border and glass effect -->
+      <div class="bg-white/95 rounded-xl shadow-2xl p-8 backdrop-blur-xl border border-white/30 w-full max-w-md relative transform transition-all overflow-hidden">
+        <!-- Decorative gradient background -->
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 pointer-events-none"></div>
+        
+        <!-- Header with improved styling -->
+        <div class="relative flex justify-between items-center mb-8">
+          <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {{ recipient ? 'Edit Recipient' : 'Add New Recipient' }}
+          </h2>
+          <button 
+            @click="$emit('close')" 
+            class="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+          >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="space-y-4">
-          <div>
-            <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+        <!-- Enhanced form with better spacing and animations -->
+        <form @submit.prevent="handleSubmit" class="space-y-6 relative">
+          <!-- Name field with floating label -->
+          <div class="relative group">
+            <label 
+              for="name" 
+              class="block text-sm font-medium text-gray-700 mb-1 transition-all group-focus-within:text-blue-600"
+            >
+              Full Name
+            </label>
             <input
               id="name"
               v-model="form.name"
               type="text"
               required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="Enter recipient's full name"
+              class="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900 bg-white/50 backdrop-blur-sm"
             />
           </div>
 
-          <div>
-            <label for="position" class="block text-sm font-medium text-gray-700">Position</label>
+          <!-- Position field with floating label -->
+          <div class="relative group">
+            <label 
+              for="position" 
+              class="block text-sm font-medium text-gray-700 mb-1 transition-all group-focus-within:text-blue-600"
+            >
+              Position
+            </label>
             <input
               id="position"
               v-model="form.position"
               type="text"
               required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="Enter recipient's position"
+              class="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900 bg-white/50 backdrop-blur-sm"
             />
           </div>
 
-          <div class="flex justify-end space-x-3">
+          <!-- Action buttons with improved styling -->
+          <div class="flex justify-end space-x-4 pt-4">
             <button
               type="button"
               @click="$emit('close')"
-              class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Save
+              {{ recipient ? 'Update' : 'Save' }}
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Success Message Modal -->
+    <!-- Enhanced Success Modal -->
     <div v-if="showSuccessModal" class="fixed inset-0 z-[60] overflow-y-auto">
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="sm:flex sm:items-start">
-              <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
-                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">
-                  Success!
-                </h3>
-                <div class="mt-2">
-                  <p class="text-sm text-gray-500">
-                    {{ successMessage }}
-                  </p>
-                </div>
-              </div>
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-auto transform transition-all">
+          <div class="flex items-center space-x-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+              <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Success!</h3>
+              <p class="mt-1 text-sm text-gray-500">{{ successMessage }}</p>
             </div>
           </div>
-          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <div class="mt-6 flex justify-end">
             <button
               type="button"
               @click="handleSuccessClose"
-              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
-              OK
+              Done
             </button>
           </div>
         </div>

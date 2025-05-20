@@ -1,69 +1,57 @@
 <template>
   <div class="flex items-center space-x-2">
+    <!-- Edit Button -->
     <ActionButton 
       variant="edit" 
-      @click="handleEdit"
+      @click="handleEdit"  
       title="Edit Letter"
-      class="p-2 hover:bg-blue-50 rounded-md"
+      class="group relative hover:bg-blue-600 hover:text-white transition-colors duration-200"
     >
-      <PencilIcon class="w-5 h-5 text-blue-600" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3"></path>
+          <path d="M9 15h3l8.5-8.5a1.5 1.5 0 0 0-3-3L9 12v3"></path>
+          <path d="M16 5l3 3"></path>
+        </g>
+      </svg>
     </ActionButton>
 
+    <!-- Preview Button -->
     <ActionButton 
-      variant="document" 
-      @click="showPreviewModal = true" 
-      title="Document Options"
+      variant="preview"
+      @click="showPreviewModal = true"
+      title="Preview PDF"
+      class="group relative hover:bg-purple-600 hover:text-white transition-colors duration-200"
     >
-      <DocumentIcon class="w-5 h-5 text-purple-600" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-5 h-5">
+        <path d="M307.94 248L216 154.52V242a6 6 0 0 0 6 6z" fill="currentColor"></path>
+        <path d="M184 268V144H60a12 12 0 0 0-12 12v328a12 12 0 0 0 12 12h248a12 12 0 0 0 12-12V280H196a12 12 0 0 1-12-12z" fill="currentColor"></path>
+        <path d="M366 120h85.94L360 26.52V114a6 6 0 0 0 6 6z" fill="currentColor"></path>
+        <path d="M340 152a12 12 0 0 1-12-12V16H172a12 12 0 0 0-12 12v84h42.12A40.81 40.81 0 0 1 231 124.14l109.16 111a41.11 41.11 0 0 1 11.83 29V400H452a12 12 0 0 0 12-12V152z" fill="currentColor"></path>
+      </svg>
     </ActionButton>
 
-    <ActionButton variant="delete" @click="handleDelete" title="Delete Letter">
-      <TrashIcon class="w-5 h-5 text-red-600" />
-    </ActionButton>
-
+    <!-- Add PreviewOptionsModal -->
     <PreviewOptionsModal
       v-if="showPreviewModal"
       :letter="letter"
-      :is-preview-loading="isLoadingPDF"
-      :is-exporting="isConverting"
-      @preview="handlePreviewPDF"
-      @convert-pdf-to-word="handleExportWord"
+      @preview-pdf="handlePreviewPDF"
+      @export-word="handleExportWord"
       @close="showPreviewModal = false"
     />
 
-    <!-- Error Message Modal -->
-    <div v-if="showErrorMessage" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl max-w-md">
-        <div class="flex items-center text-red-600 mb-4">
-          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 class="text-lg font-medium">Conversion Failed</h3>
-        </div>
-        <p class="text-gray-600 mb-4">{{ errorMessage }}</p>
-        <div class="flex justify-end">
-          <button @click="showErrorMessage = false" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading modal for Word export -->
-    <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg flex items-center gap-3">
-        <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
-        <span>Exporting to Word...</span>
-      </div>
-    </div>
-
-    <!-- Loading modal for PDF preview -->
-    <div v-if="isLoadingPDF" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg flex items-center gap-3">
-        <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
-        <span>Generating PDF preview...</span>
-      </div>
-    </div>
+    <!-- Delete Button -->
+    <ActionButton 
+      variant="delete"
+      @click="$emit('delete', letter.id)"
+      title="Delete Letter"
+      class="group relative hover:bg-red-600 hover:text-white transition-colors duration-200"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-5 h-5">
+        <rect x="32" y="48" width="448" height="80" rx="32" ry="32" fill="currentColor"></rect>
+        <path d="M74.45 160a8 8 0 0 0-8 8.83l26.31 252.56a1.5 1.5 0 0 0 0 .22A48 48 0 0 0 140.45 464h231.09a48 48 0 0 0 47.67-42.39v-.21l26.27-252.57a8 8 0 0 0-8-8.83zm248.86 180.69a16 16 0 1 1-22.63 22.62L256 318.63l-44.69 44.68a16 16 0 0 1-22.63-22.62L233.37 296l-44.69-44.69a16 16 0 0 1 22.63-22.62L256 273.37l44.68-44.68a16 16 0 0 1 22.63 22.62L278.62 296z" fill="currentColor"></path>
+      </svg>
+    </ActionButton>
   </div>
 </template>
 
