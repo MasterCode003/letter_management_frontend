@@ -819,56 +819,63 @@ export default {
     },
     
     async confirmQuickSave() {
-      if (!this.templateName) {
-        this.errors.templateName = 'Template name is required';
-        return;
-      }
-    
-      // Validate recipients and date
-      if (!this.letterForm.recipients[0].id || !this.letterForm.recipients[0].name || !this.letterForm.recipients[0].position) {
-        this.errors.recipients = 'Recipient information (ID, Name, and Position) is required';
-        return;
-      }
-    
-      if (!this.letterForm.date) {
-        this.errors.date = 'The date field is required';
-        return;
-      }
-    
-      try {
-        this.isSubmitting = true;
-        const payload = {
-          name: this.templateName,
-          title: this.letterForm.title,  // Ensure title is included
-          type: this.letterForm.type,
-          subject: this.letterForm.subject,
-          content: this.letterForm.content,
-          sender_name: this.letterForm.sender_name,
-          sender_position: this.letterForm.sender_position,
-          date: this.letterForm.date,    // Add date
-          recipients: this.letterForm.recipients.map(recipient => ({
-            id: recipient.id,
-            name: recipient.name,
-            position: recipient.position
-          }))
-        };
-    
-        await apiClient.post('/templates', payload);
-        this.showTemplateModal = false;
-        this.showSuccess = true;
-        setTimeout(() => {
-          this.closeModal();
-        }, 1200);
-      } catch (error) {
-        console.error('Error saving template:', error);
-        if (error.response?.data?.errors) {
-          this.errors = error.response.data.errors;
-        } else {
-          this.errors.submit = 'Failed to save template. Please try again.';
+        if (!this.templateName) {
+            this.errors.templateName = 'Template name is required';
+            return;
         }
-      } finally {
-        this.isSubmitting = false;
-      }
+    
+        // Validate required fields including title
+        if (!this.letterForm.title) {
+            this.errors.title = 'Title is required';
+            return;
+        }
+    
+        // Validate recipients exists and has at least one valid recipient
+        if (!this.letterForm.recipients || this.letterForm.recipients.length === 0 || 
+            !this.letterForm.recipients[0] || !this.letterForm.recipients[0].id) {
+            this.errors.recipients = 'At least one valid recipient is required';
+            return;
+        }
+    
+        if (!this.letterForm.date) {
+            this.errors.date = 'The date field is required';
+            return;
+        }
+    
+        try {
+            this.isSubmitting = true;
+            const payload = {
+                name: this.templateName,
+                title: this.letterForm.title,  // Make sure title is included
+                type: this.letterForm.type,
+                subject: this.letterForm.subject,
+                content: this.letterForm.content,
+                sender_name: this.letterForm.sender_name,
+                sender_position: this.letterForm.sender_position,
+                date: this.letterForm.date,    // Add date
+                recipients: this.letterForm.recipients.map(recipient => ({
+                    id: recipient.id,
+                    name: recipient.name,
+                    position: recipient.position
+                }))
+            };
+    
+            await apiClient.post('/templates', payload);
+            this.showTemplateModal = false;
+            this.showSuccess = true;
+            setTimeout(() => {
+                this.closeModal();
+            }, 1200);
+        } catch (error) {
+            console.error('Error saving template:', error);
+            if (error.response?.data?.errors) {
+                this.errors = error.response.data.errors;
+            } else {
+                this.errors.submit = 'Failed to save template. Please try again.';
+            }
+        } finally {
+            this.isSubmitting = false;
+        }
     },
     clearError(field) {
       if (this.errors && this.errors[field]) {
