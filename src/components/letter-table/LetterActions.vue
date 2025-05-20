@@ -46,6 +46,7 @@
     <!-- Confirmation Modal -->
     <ConfirmationModal
       v-if="showDeleteConfirm"
+      :show="showDeleteConfirm"
       title="Confirm Delete"
       message="Are you sure you want to delete this letter?"
       @confirm="confirmDelete"
@@ -105,31 +106,19 @@
 </template>
 
 <script>
-import { CSpinner } from '@coreui/vue'
 import ActionButton from './ActionButton.vue'
-import { 
-  PencilIcon, 
-  TrashIcon,
-  ArrowPathIcon,
-  DocumentIcon 
-} from '@heroicons/vue/24/solid'
-import ConfirmationModal from './modals/ConfirmationModal.vue'
-import SuccessMessageModal from './modals/SuccessMessageModal.vue'
-import PreviewOptionsModal from './modals/PreviewOptionsModal.vue'
-import apiClient from '@/utils/apiClient';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue'
+import SuccessMessageModal from '@/components/common/SuccessMessageModal.vue'
+import PreviewOptionsModal from './PreviewOptionsModal.vue'
+import apiClient from '@/utils/apiClient'
 
 export default {
   name: 'LetterActions',
   components: {
     ActionButton,
-    PencilIcon,
-    TrashIcon,
-    ArrowPathIcon,
-    DocumentIcon,
-    CSpinner,
-    PreviewOptionsModal,
     ConfirmationModal,
-    SuccessMessageModal
+    SuccessMessageModal,
+    PreviewOptionsModal
   },
   props: {
     letter: {
@@ -137,20 +126,50 @@ export default {
       required: true
     }
   },
-  emits: ['edit', 'delete', 'preview-pdf', 'convert-pdf-to-word'],
   data() {
     return {
+      showDeleteConfirm: false,
+      showDeleteSuccess: false,
       showPreviewModal: false,
-      showSuccessMessage: false,
-      isConverting: false,
-      isLoadingPDF: false,
       showErrorMessage: false,
       errorMessage: '',
-      showDeleteConfirm: false,
-      showDeleteSuccess: false
+      isDeleting: false,
+      isConverting: false,    // Add this
+      isLoadingPDF: false    // Add this
     }
   },
+  emits: ['refresh-letters', 'convert-pdf-to-word', 'edit'],  // Add emits declaration
+
   methods: {
+    handleDelete() {
+      this.showDeleteConfirm = true;  // This shows the confirmation modal
+    },
+
+    async confirmDelete() {
+      if (this.isDeleting) return;
+      
+      try {
+        this.isDeleting = true;
+        const response = await apiClient.delete(`/letters/${this.letter.id}`);
+        
+        if (response.status === 200 || response.status === 204) {
+          this.showDeleteConfirm = false;
+          this.showDeleteSuccess = true;
+          this.$emit('refresh-letters');
+          
+          setTimeout(() => {
+            this.showDeleteSuccess = false;
+          }, 1500);
+        }
+      } catch (error) {
+        console.error('Error deleting letter:', error);
+        this.errorMessage = error.response?.data?.message || 'Failed to delete letter';
+        this.showErrorMessage = true;
+      } finally {
+        this.isDeleting = false;
+      }
+    }
+
     async handleExportWord() {
       try {
         this.isConverting = true;
@@ -233,23 +252,6 @@ export default {
         console.error('Edit error:', error);
       }
     },
-    handleDelete() {
-      this.showDeleteConfirm = true;
-    },
-    async confirmDelete() {
-      try {
-        await apiClient.delete(`/letters/${this.letter.id}`);
-        this.showDeleteConfirm = false;
-        this.showDeleteSuccess = true;
-        setTimeout(() => {
-          this.showDeleteSuccess = false;
-        }, 1500);
-      } catch (error) {
-        console.error('Delete error:', error);
-        this.errorMessage = error.message || 'Failed to delete letter. Please try again.';
-        this.showErrorMessage = true;
-      }
-    }
   }
 }
 </script>
