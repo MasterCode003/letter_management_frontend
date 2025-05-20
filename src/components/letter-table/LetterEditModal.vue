@@ -451,6 +451,58 @@ export default {
 </script>
 
 <style>
-@import './styles/quill-editor.css';
-</style>
+.prose {
+  width: 100%;
+}
+/* Add these styles for better Quill editor formatting */
+.ql-editor {
+  font-size: 1rem;
+  line-height: 1.6;
+}
 
+.ql-editor p {
+  margin-bottom: 1em;
+}
+
+.ql-editor strong {
+  font-weight: 700;
+}
+
+.ql-editor h1 {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+}
+
+.ql-editor h2 {
+  font-size: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor pre {
+  white-space: pre-wrap;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
+<style scoped>
+.type-memo {
+  @apply text-blue-600;
+}
+.type-endorsement {
+  @apply text-green-600;
+}
+.type-invitation_meeting {
+  @apply text-purple-600;
+}
+.type-letter_to_admin {
+  @apply text-orange-600;
+}
+</style>

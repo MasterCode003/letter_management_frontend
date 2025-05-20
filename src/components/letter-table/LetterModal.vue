@@ -8,15 +8,14 @@
           <!-- Header with gradient -->
           <div class="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4 border-b z-10">
             <div class="flex items-center justify-between">
-              <h2 class="text-2xl font-bold text-white">New Letter</h2>
+              <h2 class="text-2xl font-bold text-white">New Letter</h2>  <!-- Changed from "Edit Letter" -->
               
               <!-- Title input centered with white background -->
               <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
-                  <!-- Keep the input with letter.title -->
                   <input
-                    v-model="letterForm.title"
+                    v-model="letterForm.title"  
                     :class="{'border-red-500': errors.title}"
                     type="text"
                     required
@@ -41,15 +40,15 @@
                   Back
                 </button>
                 <button
-                  type="button"
-                  @click="showConfirmModal = true"
+                  type="submit"
+                  @click="handleSubmit"
                   :disabled="isSubmitting"
                   class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2 transition-all disabled:opacity-50"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Save
+                  Save  <!-- Changed from "Update" -->
                 </button>
                 <button
                   type="button"
@@ -80,13 +79,13 @@
                     <div class="flex flex-col">
                       <div class="relative">
                         <!-- In the type select element -->
-                        <!-- Change this in the template section -->
-                        <!-- Change the select element -->
+                        
+                     
                         <select
-                          v-model="letterForm.type"
+                          v-model="letterForm.type" 
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                          @change="handleTypeChange"
+                          @change="clearError('type')"
                         >
                           <option value="" disabled>Select Type</option>
                           <option value="Memo">Memo</option>
@@ -109,7 +108,6 @@
                     <div class="flex items-center gap-4 ml-8">
                       <label class="font-medium w-24 text-lg">Template:</label>
                       <div class="relative">
-                        <!-- In the template section, update the template select element -->
                         <select
                           v-model="selectedTemplate"
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
@@ -159,9 +157,13 @@
                     </button>
                   </div>
 
+<<<<<<< HEAD
               
                   <!-- In the recipients section -->
                   <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
+=======
+                  <div v-for="(recipient, index) in letterForm.recipients" :key="index">  <!-- Change from letter.recipients -->
+>>>>>>> parent of 5a33d4d (adjust the designs)
                     <div class="flex-1">
 <<<<<<< HEAD
                       <div class="relative flex items-center">
@@ -327,20 +329,52 @@
   </transition>
 
   <!-- Success Message Modal -->
-  <!-- Keep the imported ConfirmationModal component -->
-  <ConfirmationModal
-    :show="showConfirmModal"
-    @confirm="confirmSubmit"
-    @cancel="showConfirmModal = false"
-  />
-
   <SuccessMessageModal 
     v-if="showSuccess"
-    message="Updated successfully!"
-    @close="showSuccess = false"
-    class="transition-opacity duration-300"
+    message="Letter saved successfully!"
+    @close="closeModal"
   />
 
+  <!-- Confirmation Modal -->
+  <div v-if="showConfirmModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mt-3 text-center sm:mt-0 sm:text-left">
+              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                Confirm Create
+              </h3>
+              <div class="mt-2">
+                <p class="text-sm text-gray-500">
+                  Are you sure to create new letter?
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button
+            type="button"
+            @click="confirmSubmit"
+            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            {{ editMode ? 'Update' : 'Save' }}
+          </button>
+          <button
+            type="button"
+            @click="showConfirmModal = false"
+            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this after the Confirmation Modal -->
   <!-- Save as Template Modal -->
   <div v-if="showTemplateModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -388,28 +422,18 @@
 // Change this line:
 import apiClient from '@/utils/apiClient'; // Using default import of named import
 
-import { Quill } from '@vueup/vue-quill';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
-import ConfirmationModal from './modals/ConfirmationModal.vue';
 import SuccessMessageModal from './modals/SuccessMessageModal.vue';
+// Add this import:
 import ValidationWarning from '@/components/common/ValidationWarning.vue';
-
-// Add this constant before export default
-const typeMap = {
-  'memo': 'Memo',
-  'endorsement': 'Endorsement',
-  'invitation_meeting': 'Invitation Meeting',
-  'letter_to_admin': 'Letter to Admin'
-};
 
 export default {
   name: 'LetterEditModal',
   components: {
     QuillEditor,
     SuccessMessageModal,
-    ValidationWarning,
-    ConfirmationModal // <-- Add this line
+    ValidationWarning // Register the component
   },
   props: {
     modelValue: {
@@ -427,8 +451,9 @@ export default {
     }
   },
   emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode'],
+  // In the data() function, add pdfPreviewIndex
   data() {
-    const defaultForm = { 
+    const defaultForm = {
       title: '',
       type: '',
       subject: '',
@@ -437,52 +462,64 @@ export default {
       content: '',
       sender_name: '',
       sender_position: '',
-      pdfPreviewIndex: null
+      pdfPreviewIndex: null // Add index tracking for PDF preview button
     };
-    
+
     return {
-      letterForm: {
-        title: this.letter?.title || '',
-        type: this.letter?.type || '',
-        subject: this.letter?.subject || '',
-        date: this.letter?.date ? this.formatDateForInput(this.letter.date) : defaultForm.date,
-        recipients: this.letter?.recipients || [{ id: '', name: '', position: '' }],
-        content: this.letter?.content || '',
-        sender_name: this.letter?.sender_name || '',
-        sender_position: this.letter?.sender_position || ''
-      },
-      errors: {},
-      showConfirmModal: false,
-      showTemplateModal: false,
-      showSuccess: false,
-      recipientsList: [],
-      isSubmitting: false,
-      templates: [],
-      selectedTemplate: '',
-      isTemplateLoading: false,
       editorOptions: {
         modules: {
           toolbar: [
-            [{ 'font': [
-              'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 'garamond', 'tahoma', 'verdana', 'trebuchet', 'helvetica'
-            ] }],
-            [{ 'size': ['small', false, 'large', 'huge'] }],
             ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'header': 1 }, { 'header': 2 }],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+            [{ 'script': 'sub' }, { 'script': 'super' }],
+            [{ 'indent': '-1' }, { 'indent': '+1' }],
+            [{ 'direction': 'rtl' }],
+            [{ 'size': ['small', false, 'large', 'huge'] }],
             [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
             [{ 'color': [] }, { 'background': [] }],
+            [{ 'font': [] }],
             [{ 'align': [] }],
-            ['blockquote', 'code-block'],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            [{ 'script': 'sub'}, { 'script': 'super' }],
-            [{ 'indent': '-1'}, { 'indent': '+1' }],
-            ['link'],
             ['clean']
           ]
         },
-        theme: 'snow',
-        placeholder: 'Write your letter content here...'
-      }
-      // --- End of Quill editor options ---
+        placeholder: 'Compose your letter...',
+        theme: 'snow'
+      },
+      letterForm: this.letter ? {
+        title: this.letter.title || '',
+        type: this.letter.type || '',
+        subject: this.letter.subject || '',
+        date: this.letter.date ? this.formatDateForInput(this.letter.date) : defaultForm.date,
+        recipients: this.letter.recipients ? 
+          (Array.isArray(this.letter.recipients) ? 
+            this.letter.recipients.map(r => ({
+              id: r.id || r || '',
+              name: r.name || '',
+              position: r.position || ''
+            })) : 
+            [{ 
+              id: this.letter.recipients?.id || this.letter.recipients || '',
+              name: this.letter.recipients?.name || '',
+              position: this.letter.recipients?.position || ''
+            }]
+          ) : defaultForm.recipients,
+        content: this.letter.content || '',
+        sender_name: this.letter.sender_name || '',
+        sender_position: this.letter.sender_position || ''
+      } : { ...defaultForm },
+      errors: {},
+      showConfirmModal: false,
+      showTemplateModal: false,  // Add this line
+      showSuccess: false,  // Keep this for controlling visibility
+      recipientsList: [],
+      templateName: '', // Add this line
+      isSubmitting: false,
+      // Add these lines:
+      templates: [], // List of templates (should be fetched from API if needed)
+      selectedTemplate: '', // Currently selected template ID
+      isTemplateLoading: false, // <-- Add this line
     }
   },
   computed: {
@@ -501,52 +538,112 @@ export default {
   async created() {
     try {
       await this.fetchCSRFToken();
+      
+      // Fetch recipients first
       await this.fetchRecipients();
       
+      // Then fetch templates
       const templatesResponse = await apiClient.get('/templates');
       this.templates = templatesResponse.data.data || templatesResponse.data;
 
       if (this.letter && Object.keys(this.letter).length > 0) {
+        // Instead of mutating prop directly
         this.$emit('update:editMode', true);
+        const formattedRecipients = Array.isArray(this.letter.recipients) 
+          ? this.letter.recipients.map(r => {
+              if (typeof r === 'object') {
+                return {
+                  id: r.id || '',
+                  name: r.name || '',
+                  position: r.position || ''
+                };
+              } else {
+                return {
+                  id: r,
+                  name: '',
+                  position: ''
+                };
+              }
+            })
+          : [{
+              id: this.letter.recipients?.id || this.letter.recipients || '',
+              name: this.letter.recipients?.name || '',
+              position: this.letter.recipients?.position || ''
+            }];
         
-        // Update letterForm instead of trying to set localLetter
+        // Build a new object for letterForm, do NOT spread this.letter
         this.letterForm = {
-          ...this.letterForm,
-          date: this.formatDateForInput(this.letter.date || new Date()),
-          type: typeMap[this.letter.type] || this.letter.type || ''
+          title: this.letter.title || '',
+          type: this.letter.type || '',
+          subject: this.letter.subject || '',
+          content: this.letter.content || '',
+          sender_name: this.letter.sender_name || '',
+          sender_position: this.letter.sender_position || '',
+          date: this.formatDateForInput(this.letter.date),
+          recipients: formattedRecipients
         };
-      } else {
-        // Update letterForm with default date
-        this.letterForm.date = this.formatDateForInput(new Date());
       }
+      this.fetchRecipients();
     } catch (error) {
       console.error('Component initialization error:', error);
       this.closeModal();
     }
   },  // <-- Add this comma
+ 
   methods: {
+    async handleTemplateChange(eventOrId) {
+      // Accept both event object and direct ID
+      let templateId;
+      if (eventOrId && eventOrId.target) {
+        templateId = eventOrId.target.value;
+      } else {
+        templateId = eventOrId;
+      }
+      if (!templateId) return;
+
+      try {
+        this.isTemplateLoading = true;
+        const response = await apiClient.get(`/templates/${templateId}`);
+        const template = response.data.data || response.data;
+
+        // Build a new object for letterForm, do NOT spread this.letter or this.letterForm
+        this.letterForm = {
+          title: template.title || '',
+          type: template.type || '',
+          subject: template.subject || '',
+          content: template.content || '',
+          sender_name: template.sender_name || '',
+          sender_position: template.sender_position || '',
+          date: template.date || new Date().toISOString().split('T')[0],
+          recipients: template.recipients?.map(r => ({
+            id: r.id || '',
+            name: r.name || '',
+            position: r.position || ''
+          })) || [{ id: '', name: '', position: '' }]
+        };
+
+        this.clearErrors();
+      } catch (error) {
+        console.error('Error loading template:', error);
+        this.errors.template = 'Failed to load template';
+      } finally {
+        this.isTemplateLoading = false;
+      }
+    },
+
+    clearErrors() {
+      this.errors = {};
+    },
+
     async fetchCSRFToken() {
       try {
-        // Add timeout and retry logic
-        const response = await apiClient.get('/sanctum/csrf-cookie', {
-          timeout: 5000, // 5 second timeout
-          retry: 3 // Retry 3 times
-        });
-        
+        const response = await apiClient.get('/sanctum/csrf-cookie');
         if (!response) {
           throw new Error('No response from server');
         }
         return response;
       } catch (error) {
         console.error('Error fetching CSRF token:', error);
-        
-        // More specific error messages
-        if (error.code === 'ERR_NETWORK') {
-          throw new Error('Cannot connect to the server. Please check if the backend server is running.');
-        } else if (error.code === 'ECONNABORTED') {
-          throw new Error('Connection timed out. Please check your network connection.');
-        }
-        
         const errorMsg = error.response?.status === 404 
           ? 'CSRF endpoint not found. Check your API configuration.'
           : error.message || 'Failed to fetch CSRF token';
@@ -556,17 +653,8 @@ export default {
 
     formatDateForInput(dateString) {
       if (!dateString) return '';
-      try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return ''; // Invalid date
-        
-        // Adjust for local timezone
-        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-        return localDate.toISOString().split('T')[0];
-      } catch (error) {
-        console.error('Date formatting error:', error);
-        return '';
-      }
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
     },
 
     closeModal() {
@@ -575,17 +663,12 @@ export default {
       this.$emit('close');
     },
     addRecipient() {
-      if (!Array.isArray(this.letterForm.recipients)) {
-        this.letterForm.recipients = [];
-      }
-      this.letterForm.recipients.push({
-        id: '',
-        name: '',
-        position: ''
+      this.letterForm.recipients.push({ 
+        id: '', 
+        name: '', 
+        position: '' 
       });
-      this.clearError('recipients');
     },
-
     removeRecipient(index) {
       if (this.letterForm.recipients.length > 1) {
         this.letterForm.recipients.splice(index, 1);
@@ -594,47 +677,39 @@ export default {
     async fetchRecipients() {
       try {
         const response = await apiClient.get('/recipients');
-        this.recipientsList = response.data.data || response.data;
-        
-        // Add null check for letterForm.recipients
-        if (!this.letterForm.recipients) {
-          this.letterForm.recipients = [{ id: '', name: '', position: '' }];
+        this.recipientsList = response.data.data || response.data || [];
+        if (this.letterForm.recipients.length > 0) {
+          this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
+            if (!recipient.id) return recipient;
+            const foundRecipient = this.recipientsList.find(r => r.id === recipient.id);
+            return foundRecipient ? {
+              id: foundRecipient.id,
+              name: foundRecipient.name,
+              position: foundRecipient.position
+            } : recipient;
+          });
         }
-        
-        this.letterForm.recipients = this.letterForm.recipients.map(recipient => {
-          const found = this.recipientsList.find(r => r.id == recipient.id);
-          return found ? {
-            id: found.id,
-            name: found.name,
-            position: found.position
-          } : recipient;
-        });
       } catch (error) {
         console.error('Error fetching recipients:', error);
         this.recipientsList = [];
+        this.errors.recipients = 'Failed to fetch recipients. Please try again.';
       }
     },
+
+    // Update updateRecipient method to handle null cases
     updateRecipient(index, recipientId) {
-      if (!recipientId) {
-        this.letterForm.recipients[index] = { id: '', name: '', position: '' };
-        return;
-      }
+      if (!recipientId) return;
       
       const selectedRecipient = this.recipientsList.find(r => 
-        r.id === parseInt(recipientId)
+        r.id === (typeof recipientId === 'string' ? parseInt(recipientId) : recipientId)
       );
       
       if (selectedRecipient) {
-        // Replace this.$set with direct assignment and array copy
-        this.letterForm.recipients = [
-          ...this.letterForm.recipients.slice(0, index),
-          {
-            id: selectedRecipient.id,
-            name: selectedRecipient.name,
-            position: selectedRecipient.position
-          },
-          ...this.letterForm.recipients.slice(index + 1)
-        ];
+        this.letterForm.recipients[index] = {
+          id: selectedRecipient.id,
+          name: selectedRecipient.name || '',
+          position: selectedRecipient.position || ''
+        };
       }
       this.clearError('recipients');
     },  // Add comma here
@@ -653,299 +728,201 @@ export default {
       };
       this.closeModal();
     },
+    // Update the validateForm method
     validateForm() {
       this.errors = {};
       let isValid = true;
     
-      // Validate title
-      if (!this.letterForm.title?.trim()) {
-        this.errors.title = 'Title is required';
-        isValid = false;
-      }
-    
-      // Validate type with human-readable values
-      const validTypes = [
-        'Memo',
-        'Endorsement',
-        'Invitation Meeting',
-        'Letter to Admin'
-      ];
+      // Validate type with specific values
+      // Update valid types to match backend expectations
+      const validTypes = ['Memo', 'Endorsement', 'Invitation Meeting', 'Letter to Admin'];
       if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
         this.errors.type = 'Please select a valid type';
         isValid = false;
       }
-    
-      // Validate subject
-      if (!this.letterForm.subject?.trim()) {
+
+      // Add validation for required fields
+      if (!this.letterForm.title) {
+        this.errors.title = 'Title is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.subject) {
         this.errors.subject = 'Subject is required';
         isValid = false;
       }
-    
-      // Validate date
-      if (!this.letterForm.date) {
-        this.errors.date = 'Date is required';
-        isValid = false;
-      }
-    
-      // Validate content
-      if (!this.letterForm.content?.trim()) {
+
+      if (!this.letterForm.content) {
         this.errors.content = 'Content is required';
         isValid = false;
       }
-    
-      // Validate sender info
-      if (!this.letterForm.sender_name?.trim()) {
+
+      if (!this.letterForm.sender_name) {
         this.errors.sender_name = 'Sender name is required';
         isValid = false;
       }
-    
-      if (!this.letterForm.sender_position?.trim()) {
+
+      if (!this.letterForm.sender_position) {
         this.errors.sender_position = 'Sender position is required';
         isValid = false;
       }
-    
+
       // Validate recipients
-      const hasEmptyRecipients = this.letterForm.recipients.some(r => !r.id);
-      if (hasEmptyRecipients) {
-        this.errors.recipients = 'All recipients must be selected';
+      if (!this.letterForm.recipients.some(r => r.id)) {
+        this.errors.recipients = 'At least one recipient is required';
         isValid = false;
       }
     
       return isValid;
     },
 
+    // Add these methods
     async handleSubmit() {
-      if (!this.validateForm()) return;
-      this.isSubmitting = true;
-      try {
-        // Ensure all fields are properly converted to strings where needed
-        const formData = {
-          title: this.letterForm.title?.toString() || '',
-          type: this.letterForm.type?.toString() || '',
-          subject: this.letterForm.subject?.toString() || '',
-          date: this.letterForm.date,
-          content: this.letterForm.content?.toString() || '',
-          sender_name: this.letterForm.sender_name?.toString() || '',
-          sender_position: this.letterForm.sender_position?.toString() || '',
-          recipients: this.letterForm.recipients.map(recipient => ({
-            id: recipient.id ? parseInt(recipient.id) : null,
-            name: recipient.name?.toString() || '',
-            position: recipient.position?.toString() || ''
-          })).filter(r => r.id !== null)
-        };
-    
-        let response;
-        if (this.editMode) {
-          response = await apiClient.put(`/letters/${this.letter.id}`, formData);
-        } else {
-          response = await apiClient.post('/letters', formData);
-        }
-    
-        this.$emit('refresh-letters');
-        this.showSuccess = true;
-        setTimeout(() => {
-          this.closeModal();
-        }, 1500);
-      } catch (error) {
-        console.error('Error submitting letter:', error);
-        this.errors = error.response?.data?.errors || {};
-        this.errors.submit = error.response?.data?.message || 'Failed to save letter';
-      } finally {
-        this.isSubmitting = false;
+      if (this.isSubmitting) return;
+      
+      if (!this.validateForm()) {
+        return;
       }
+
+      this.showConfirmModal = true;
     },
 
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
-        this.showConfirmModal = false;
-    
-        const formData = {
-          title: String(this.letterForm.title || ''),
-          type: String(this.letterForm.type || ''),
-          subject: String(this.letterForm.subject || ''),
-          date: this.letterForm.date,
-          content: String(this.letterForm.content || ''),
-          sender_name: String(this.letterForm.sender_name || ''),
-          sender_position: String(this.letterForm.sender_position || ''),
+        // Ensure recipients are sent as integer IDs
+        const payload = {
+          ...this.letterForm,
           recipients: this.letterForm.recipients
-            .filter(r => r.id) // Filter out empty recipients
-            .map(recipient => parseInt(recipient.id)) // Send only the IDs as integers
+            .map(r => parseInt(r.id, 10))
+            .filter(id => !isNaN(id))
         };
-    
-        let response;
-        if (this.editMode && this.letter?.id) {
-          response = await apiClient.put(`/letters/${this.letter.id}`, formData);
-        } else {
-          response = await apiClient.post('/letters', formData);
-        }
-    
-        this.$emit('refresh-letters', { sortDescending: !this.editMode });
+        const endpoint = this.editMode ? `/letters/${this.letter.id}` : '/letters';
+        const method = this.editMode ? 'put' : 'post';
+        const response = await apiClient[method](endpoint, payload);
+        this.showConfirmModal = false;
         this.showSuccess = true;
-      
         setTimeout(() => {
-          this.showSuccess = false;
-          setTimeout(() => {
-            this.closeModal();
-          }, 300);
-        }, 5000);
-    
+          this.closeModal();
+        }, 1200); // Close after 1.2 seconds
+        if (this.editMode) {
+          this.$emit('update-letter', response.data);
+        } else {
+          this.$emit('save-letter', response.data);
+        }
+        this.$emit('refresh-letters');
       } catch (error) {
-        console.error('Error submitting letter:', error);
-        this.errors = error.response?.data?.errors || {};
-        this.errors.submit = error.response?.data?.message || 'Failed to save letter';
+        console.error('Error saving letter:', error);
+        this.errors.submit = 'Failed to save letter. Please try again.';
       } finally {
         this.isSubmitting = false;
       }
-    },  // <-- Add this comma
-    
-    async handleQuickSave() {
-      if (!this.validateForm()) {
-        return;
-      }
-      this.showTemplateModal = true;
     },
 
+    async handleQuickSave() {
+      if (this.isSubmitting) return;
+      
+      // Validate required fields before showing template modal
+      const requiredFields = ['title', 'type', 'subject', 'content', 'sender_name', 'sender_position', 'date'];
+      const errors = {};
+      
+      requiredFields.forEach(field => {
+        if (!this.letterForm[field]) {
+          errors[field] = `The ${field.replace('_', ' ')} field is required.`;
+        }
+      });
+    
+      if (Object.keys(errors).length > 0) {
+        this.errors = errors;
+        return;
+      }
+    
+      // Show template name input modal if validation passes
+      this.showTemplateModal = true;
+    },
+    
     async confirmQuickSave() {
+      if (!this.templateName) {
+        this.errors.templateName = 'Template name is required';
+        return;
+      }
+    
+      // Validate recipients and date
+      if (!this.letterForm.recipients[0].id || !this.letterForm.recipients[0].name || !this.letterForm.recipients[0].position) {
+        this.errors.recipients = 'Recipient information (ID, Name, and Position) is required';
+        return;
+      }
+    
+      if (!this.letterForm.date) {
+        this.errors.date = 'The date field is required';
+        return;
+      }
+    
       try {
         this.isSubmitting = true;
-        this.showTemplateModal = false;
-
-        const formData = {
+        const payload = {
           name: this.templateName,
+          title: this.letterForm.title,  // Ensure title is included
           type: this.letterForm.type,
           subject: this.letterForm.subject,
-          date: this.letterForm.date,
           content: this.letterForm.content,
           sender_name: this.letterForm.sender_name,
           sender_position: this.letterForm.sender_position,
-          recipients: this.letterForm.recipients
-            .filter(r => r.id)
-            .map(r => ({
-              id: r.id,
-              name: r.name,
-              position: r.position
-            }))
+          date: this.letterForm.date,    // Add date
+          recipients: this.letterForm.recipients.map(recipient => ({
+            id: recipient.id,
+            name: recipient.name,
+            position: recipient.position
+          }))
         };
-
-        // Change from POST to PUT
-        const response = await apiClient.put(`/templates/${this.selectedTemplate}`, formData);
-        
-        // Adjust API response handling
-        const newTemplate = response.data?.data || response.data;
-        
-        // Update templates list reactively
-        this.templates = [
-          ...this.templates,
-          {
-            id: newTemplate.id,
-            name: newTemplate.name,
-            // Include other necessary template properties
-          }
-        ];
-        // Select the new template
-        this.selectedTemplate = newTemplate.id;
-
-        this.templateName = '';
+    
+        await apiClient.post('/templates', payload);
+        this.showTemplateModal = false;
         this.showSuccess = true;
-        setTimeout(() => this.closeModal(), 1500);
+        setTimeout(() => {
+          this.closeModal();
+        }, 1200);
       } catch (error) {
-        console.error('Template save error:', error);
-        this.errors.submit = error.response?.data?.message || 'Template save failed';
+        console.error('Error saving template:', error);
+        if (error.response?.data?.errors) {
+          this.errors = error.response.data.errors;
+        } else {
+          this.errors.submit = 'Failed to save template. Please try again.';
+        }
       } finally {
         this.isSubmitting = false;
       }
-    },  // <-- Add this comma
+    },
     clearError(field) {
       if (this.errors && this.errors[field]) {
-        delete this.errors[field] // Changed from this.$delete to standard delete
+        this.errors[field] = null;
+        delete this.errors[field];
       }
-    }, // <-- Add this comma
+    },
     onContentInput() {
       this.clearError('content');
     },
-    async handleTemplateChange(eventOrId) {
-      let templateId;
-      if (eventOrId && eventOrId.target) {
-        templateId = eventOrId.target.value;
-      } else {
-        templateId = eventOrId;
-      }
-      if (!templateId) return;
-    
-      try {
-        this.isTemplateLoading = true;
-        const response = await apiClient.get(`/templates/${templateId}`);
-        const template = response.data.data || response.data;
-    
-        // Update letterForm directly instead of using this.letter
-        this.letterForm = {
-          ...this.letterForm,
-          title: template.title || this.letterForm.title,
-          type: template.type || this.letterForm.type,
-          subject: template.subject || this.letterForm.subject,
-          content: template.content || this.letterForm.content,
-          sender_name: template.sender_name || this.letterForm.sender_name,
-          sender_position: template.sender_position || this.letterForm.sender_position,
-          date: this.formatDateForInput(template.date) || this.letterForm.date,
-          recipients: template.recipients?.map(r => ({
-            id: r.id,
-            name: r.name,
-            position: r.position
-          })) || [{ id: '', name: '', position: '' }]
-        };
-    
-        // Clear any template-related errors
-        this.$nextTick(() => {
-          this.clearError('template');
-        });
-      } catch (error) {
-        console.error('Error loading template:', error);
-        this.errors.template = 'Failed to load template';
-      } finally {
-        this.isTemplateLoading = false;
-      }
+    showPdfPreviewButton(index) {
+      this.pdfPreviewIndex = index;
     },
-    initQuill() {
-      // Whitelist the fonts for Quill
-      const Font = Quill.import('formats/font');
-      Font.whitelist = [
-        'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 'garamond', 'tahoma', 'verdana', 'trebuchet', 'helvetica'
-      ];
-      Quill.register(Font, true);
-    },
-  },
-  mounted() {
-    this.initQuill();
+    previewRecipientPdf(recipient) {
+      // Placeholder: Replace with your actual PDF preview logic
+    }
+  }, // End of methods
+
+  watch: {
+    selectedTemplate(newVal) {
+      if (newVal) {
+        this.handleTemplateChange(newVal);
+      }
+    }
   }
-} // Single closing brace for the component definition
+} // End of component export default
 
 </script>
 
 <style>
-@import './styles/quill-editor.css';
-
-/* Add custom fonts to Quill editor */
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value=""]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value=""]::before {
-  content: 'Standard';
-  font-family: 'Arial', sans-serif;
-}
-
-.ql-font-arial {
-  font-family: 'Arial', sans-serif;
-}
-
-.ql-font-times-new-roman {
-  font-family: 'Times New Roman', serif;
-}
-
-.ql-font-courier {
-  font-family: 'Courier New', monospace;
-}
-
-.ql-font-georgia {
-  font-family: 'Georgia', serif;
+.prose {
+  width: 100%;
 }
 </style>
-

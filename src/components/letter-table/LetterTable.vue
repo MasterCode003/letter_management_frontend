@@ -213,17 +213,10 @@ import LetterModal from './LetterModal.vue';
 import LetterActions from './LetterActions.vue';
 import SearchFilters from './SearchFilters.vue';
 import TablePagination from './TablePagination.vue';
-// Remove this line ▼
-import DeleteConfirmationModal from './modals/DeleteConfirmationModal.vue';
-// Keep this line ▼
 import LetterEditModal from './LetterEditModal.vue';
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
-
-// Add missing import
 import PreviewOptionsModal from './modals/PreviewOptionsModal.vue';
-
-// Add these Quill configurations
 import Quill from 'quill'
 import Tooltip from 'quill/ui/tooltip'
 
@@ -234,7 +227,7 @@ export default {
     SearchFilters,
     TablePagination,
     LetterEditModal,
-    PreviewOptionsModal  // Ensure component registration
+    PreviewOptionsModal
   },
   emits: ['refresh-letters'],
   data() {
@@ -549,160 +542,15 @@ export default {
       }
     },
   }
-}
+} // End of export default
 
-// Add this in the template section before the closing </div>
-<ConfirmationDialog
-  v-model="showConfirmDialog"
-  title="Delete Letter"
-  message="Are you sure you want to delete this letter? This action cannot be undone."
-  @confirm="deleteLetter(confirmDeleteId)"
-/>
-
-    async fetchRecipients() {
-      try {
-        const response = await apiClient.get('/recipients');
-        const recipientsData = response.data?.data || response.data || [];
-        if (Array.isArray(recipientsData)) {
-          this.recipients = recipientsData.map(recipient => ({
-            id: recipient.id,
-            name: recipient.name || '',
-            position: recipient.position || '',
-            selected: false
-          }));
-        } else {
-          this.recipients = [];
-        }
-      } catch (error) {
-        console.error('Error fetching recipients:', error);
-        this.recipients = [];
-        alert('Failed to fetch recipients. Please try again.');
-      }
-    },
-    // Add pagination methods
-    previousPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
-    },
-
-    goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-      }
-    },
-
-    // Add edit modal method
-    openEditModal(letter) {
-      // Normalize type before passing to modal
-      const typeMap = {
-        'memo': 'Memo',
-        'endorsement': 'Endorsement',
-        'invitation_meeting': 'Invitation Meeting',
-        'invitation meeting': 'Invitation Meeting',
-        'letter_to_admin': 'Letter to Admin',
-        'letter to admin': 'Letter to Admin',
-        'Memo': 'Memo',
-        'Endorsement': 'Endorsement',
-        'Invitation Meeting': 'Invitation Meeting',
-        'Letter to Admin': 'Letter to Admin'
-      };
-      this.selectedLetter = {
-        ...letter,
-        type: typeMap[letter.type?.toLowerCase().replace(/_/g, ' ')] || ''
-      };
-      this.editMode = true;
-      this.showEditModal = true;
-    },
-
-    async previewPDF(letter) {
-      try {
-        this.isPreviewLoading = true;
-        this.selectedLetter = letter;
-        
-        if (!letter?.id) {
-          throw new Error('Invalid letter ID');
-        }
-
-        const response = await apiClient.get(`/preview/pdf/${letter.id}`, {
-          responseType: 'blob'
-        });
-
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        
-        // Open PDF in new window
-        window.open(url, '_blank');
-        
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Preview error:', error);
-        alert('Failed to generate PDF preview. Please try again.');
-      } finally {
-        this.isPreviewLoading = false;
-      }
-    },
-
-    async convertPDFToWord(letter) {
-      try {
-        this.isPreviewLoading = true;
-        
-        if (!letter?.id) {
-          throw new Error('Invalid letter ID');
-        }
-
-        const exportEndpointMap = {
-          'memo': `/export/memo/${letter.id}`,
-          'endorsement': `/export/endorsement/${letter.id}`,
-          'letter to admin': `/export/letter-to-admin/${letter.id}`,
-          'invitation meeting': `/export/invitation-meeting/${letter.id}`,
-        };
-
-        const normalizedType = letter.type?.trim().toLowerCase();
-        const endpoint = exportEndpointMap[normalizedType];
-
-        if (!endpoint) {
-          throw new Error(`Invalid letter type: ${letter.type}`);
-        }
-
-        const response = await apiClient.get(endpoint, {
-          responseType: 'blob',
-          headers: {
-            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          }
-        });
-
-        const blob = new Blob([response.data], {
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-        
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${letter.title || 'letter'}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-      } catch (error) {
-        console.error('Export error:', error);
-        alert('Failed to export document. Please try again.');
-      } finally {
-        this.isPreviewLoading = false;
-      }
-    }
-  } // <-- This closes the methods object. No comma needed if this is the last property in export default.
-} // <-- This closes the export default object.
-
-</script>
+// Remove these lines ▼
+// <ConfirmationDialog
+//   v-model="showConfirmDialog"
+//   title="Delete Letter"
+//   message="Are you sure you want to delete this letter? This action cannot be undone."
+//   @confirm="deleteLetter(confirmDeleteId)"
+// />
 
 async handlePreviewPDF() {
   this.isPreviewLoading = true;

@@ -1,33 +1,21 @@
-import { QuillEditor } from '@vueup/vue-quill'
-import '@vueup/vue-quill/dist/vue-quill.snow.css'
-
 export const editorOptions = {
   modules: {
-    toolbar: {
-      container: [ // Proper object structure for toolbar
-        [{ 'font': [
-          'Arial',
-          'Times New Roman',
-          'Helvetica',
-          'Verdana',
-          'Georgia',
-          'Tahoma',
-          'Trebuchet MS',
-          'Garamond',
-          'Courier New',
-          'Calibri'
-        ] }],
-        [{ 'size': ['small', false, 'large', 'huge'] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'align': [] }],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        ['clean']
-      ]
-    }, // Fixed comma placement
-    tooltip: true
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+      ['blockquote', 'code-block'],
+      [{ 'header': 1 }, { 'header': 2 }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      [{ 'direction': 'rtl' }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'font': [] }],
+      [{ 'align': [] }],
+      ['clean']
+    ]
   },
-  theme: 'snow',
-  placeholder: 'Enter letter content here...'
+  placeholder: 'Enter letter content here...',
+  theme: 'snow'
 };

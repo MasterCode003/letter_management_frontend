@@ -7,7 +7,6 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import apiClient from './utils/apiClient'
-import { initializeQuill } from './utils/quill-config'
 
 const app = createApp(App)
 
@@ -24,9 +23,5 @@ app.use(Toast, {
   pauseOnFocusLoss: true,
 })
 
-// Initialize Quill before mounting Vue app
-initializeQuill();
-
-createApp(App)
-  .use(router)
-  .mount('#app');
+app.use(router)
+app.mount('#app')
