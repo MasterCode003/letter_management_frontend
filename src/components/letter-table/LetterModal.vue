@@ -160,7 +160,6 @@
                   <!-- Recipient rows -->
                   <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
                     <div class="flex-1">
-
                       <div class="relative flex items-center">
                         <select
                           v-model="recipient.id"
@@ -189,7 +188,8 @@
                         </button>
                       </div>
 
-                      <select
+                      <!-- Remove this duplicate select element -->
+                      <!-- <select
                         v-model="recipient.id"
                         @change="updateRecipient(index, $event.target.value)"
                         class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
@@ -199,7 +199,7 @@
                         <option v-for="r in recipientsList" :key="r.id" :value="r.id">
                           {{ r.name }} - {{ r.position }}
                         </option>
-                      </select>
+                      </select> -->
 
                       <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                         <span

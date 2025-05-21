@@ -15,7 +15,7 @@
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
                   <input
-                    v-model="letterForm.title"  
+                    v-model="letter.title"  
                     :class="{'border-red-500': errors.title}"
                     type="text"
                     required
@@ -82,7 +82,7 @@
                         
                      
                         <select
-                          v-model="letterForm.type" 
+                          v-model="letter.type" 
                           required
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
                           @change="clearError('type')"
@@ -158,9 +158,8 @@
                   </div>
 
                   <!-- Recipient rows -->
-                  <div v-for="(recipient, index) in letterForm.recipients" :key="index" class="flex items-center gap-4 ml-24">
+                  <div v-for="(recipient, index) in letter.recipients" :key="index" class="flex items-center gap-4 ml-24">
                     <div class="flex-1">
-
                       <div class="relative flex items-center">
                         <select
                           v-model="recipient.id"
@@ -178,7 +177,7 @@
                           </option>
                         </select>
                         <button
-                          v-if="letterForm.recipients.length > 1"
+                          v-if="letter.recipients.length > 1"
                           @click="removeRecipient(index)"
                           type="button"
                           class="absolute right-[-40px] p-1.5 text-red-500 hover:text-white hover:bg-red-500 rounded-full transition-all duration-200"
@@ -188,8 +187,9 @@
                           </svg>
                         </button>
                       </div>
-
-                      <select
+                      
+                      <!-- Remove this duplicate select element -->
+                      <!-- <select
                         v-model="recipient.id"
                         @change="updateRecipient(index, $event.target.value)"
                         class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
@@ -199,7 +199,7 @@
                         <option v-for="r in recipientsList" :key="r.id" :value="r.id">
                           {{ r.name }} - {{ r.position }}
                         </option>
-                      </select>
+                      </select> -->
 
                       <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                         <span
@@ -226,7 +226,7 @@
                   <label class="font-medium w-24 text-lg">Subject:</label>
                   <div class="flex flex-col flex-1">
                     <input
-                      v-model="letterForm.subject"
+                      v-model="letter.subject"
                       type="text"
                       required
                       class="border rounded-md px-4 py-2"
@@ -242,7 +242,7 @@
                   <label class="font-medium w-24 text-lg">Date:</label>
                   <div class="flex flex-col">
                     <input
-                      v-model="letterForm.date"
+                      v-model="letter.date"
                       type="date"
                       required
                       class="w-[200px] border rounded-md px-4 py-2"
@@ -259,7 +259,7 @@
                   <div class="flex-1">
                     <div class="relative">
                       <QuillEditor
-                        v-model:content="letterForm.content"
+                        v-model:content="letter.content"
                         contentType="html"
                         :options="editorOptions"
                         class="h-[350px] min-h-[200px] border border-gray-300 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all"
@@ -284,7 +284,7 @@
                     <label class="font-medium w-24 text-lg">Name:</label>
                     <div class="flex flex-col flex-1">
                       <input
-                        v-model="letterForm.sender_name"
+                        v-model="letter.sender_name"
                         type="text"
                         required
                         class="border rounded-md px-4 py-2"
@@ -300,7 +300,7 @@
                     <label class="font-medium w-24 text-lg">Position:</label>
                     <div class="flex flex-col flex-1">
                       <input
-                        v-model="letterForm.sender_position"
+                        v-model="letter.sender_position"
                         type="text"
                         required
                         class="border rounded-md px-4 py-2"
@@ -527,52 +527,31 @@ export default {
   async created() {
     try {
       await this.fetchCSRFToken();
-      
-      // Fetch recipients first
       await this.fetchRecipients();
       
-      // Then fetch templates
       const templatesResponse = await apiClient.get('/templates');
       this.templates = templatesResponse.data.data || templatesResponse.data;
 
       if (this.letter && Object.keys(this.letter).length > 0) {
-        // Instead of mutating prop directly
         this.$emit('update:editMode', true);
-        const formattedRecipients = Array.isArray(this.letter.recipients) 
-          ? this.letter.recipients.map(r => {
-              if (typeof r === 'object') {
-                return {
-                  id: r.id || '',
-                  name: r.name || '',
-                  position: r.position || ''
-                };
-              } else {
-                return {
-                  id: r,
-                  name: '',
-                  position: ''
-                };
-              }
-            })
-          : [{
-              id: this.letter.recipients?.id || this.letter.recipients || '',
-              name: this.letter.recipients?.name || '',
-              position: this.letter.recipients?.position || ''
-            }];
         
-        // Build a new object for letterForm, do NOT spread this.letter
-        this.letterForm = {
-          title: this.letter.title || '',
-          type: this.letter.type || '',
-          subject: this.letter.subject || '',
-          content: this.letter.content || '',
-          sender_name: this.letter.sender_name || '',
-          sender_position: this.letter.sender_position || '',
-          date: this.formatDateForInput(this.letter.date),
-          recipients: formattedRecipients
+        // Update the letter initialization
+        this.letter = {
+          ...this.letter,
+          type: this.letter.type || '',  // Ensure type is properly initialized
+          recipients: Array.isArray(this.letter.recipients) 
+            ? this.letter.recipients.map(r => ({
+                id: r.id || r || '',
+                name: r.name || '',
+                position: r.position || ''
+              }))
+            : [{ 
+                id: this.letter.recipients?.id || this.letter.recipients || '',
+                name: this.letter.recipients?.name || '',
+                position: this.letter.recipients?.position || ''
+              }]
         };
       }
-      this.fetchRecipients();
     } catch (error) {
       console.error('Component initialization error:', error);
       this.closeModal();
@@ -717,15 +696,13 @@ export default {
       };
       this.closeModal();
     },
-    // Update the validateForm method
     validateForm() {
       this.errors = {};
       let isValid = true;
     
       // Validate type with specific values
-      // Update valid types to match backend expectations
       const validTypes = ['Memo', 'Endorsement', 'Invitation Meeting', 'Letter to Admin'];
-      if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
+      if (!this.letter.type || !validTypes.includes(this.letter.type)) {
         this.errors.type = 'Please select a valid type';
         isValid = false;
       }

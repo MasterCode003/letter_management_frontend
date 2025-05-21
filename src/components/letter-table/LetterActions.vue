@@ -32,14 +32,26 @@
     </ActionButton>
 
     <!-- Trash Button -->
+    <!-- Delete Button -->
     <ActionButton 
       variant="delete"
       @click="handleDelete"
       title="Delete Letter"
       class="group relative hover:bg-red-600 hover:text-white transition-colors duration-200"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5">
-        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"></path>
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24"
+        class="w-5 h-5"
+      >
+        <path 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" 
+          d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"
+        ></path>
       </svg>
     </ActionButton>
 
@@ -107,9 +119,9 @@
 
 <script>
 import ActionButton from './ActionButton.vue'
-import ConfirmationModal from '@/components/common/ConfirmationModal.vue'
-import SuccessMessageModal from '@/components/common/SuccessMessageModal.vue'
-import PreviewOptionsModal from './PreviewOptionsModal.vue'
+import ConfirmationModal from './modals/ConfirmationModal.vue'
+import SuccessMessageModal from './modals/SuccessMessageModal.vue'
+import PreviewOptionsModal from './modals/PreviewOptionsModal.vue'
 import apiClient from '@/utils/apiClient'
 
 export default {
@@ -156,7 +168,7 @@ export default {
           this.showDeleteConfirm = false;
           this.showDeleteSuccess = true;
           this.$emit('refresh-letters');
-          
+    
           setTimeout(() => {
             this.showDeleteSuccess = false;
           }, 1500);
@@ -168,7 +180,7 @@ export default {
       } finally {
         this.isDeleting = false;
       }
-    }
+    },
 
     async handleExportWord() {
       try {
