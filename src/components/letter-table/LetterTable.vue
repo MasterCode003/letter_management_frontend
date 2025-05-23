@@ -143,13 +143,19 @@
 
     <!-- Update the LetterEditModal component usage -->
     
+    <LetterModal
+      v-model="showLetterModal"
+      @template-saved="handleTemplateSaved"
+      @save-letter="handleLetterSaved"
+      @refresh-letters="fetchLetters"
+    />
+    
     <LetterEditModal
       v-model="showEditModal"
       :letter="selectedLetter"
-      :edit-mode="editMode"
-      @update:edit-mode="val => editMode = val"
+      ref="editModal"
+      @update-letter="handleLetterUpdated"
       @refresh-letters="fetchLetters"
-      @close="resetSelection"
     />
 
     <!-- Add PreviewOptionsModal -->

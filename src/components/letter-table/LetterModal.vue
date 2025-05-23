@@ -439,7 +439,7 @@ export default {
       default: false
     }
   },
-  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode'],
+  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode', 'template-saved'],
   // In the data() function, add pdfPreviewIndex
   data() {
     const defaultForm = {
@@ -526,53 +526,48 @@ export default {
   },
   async created() {
     try {
-      await this.fetchCSRFToken();
-      
-      // Fetch recipients first
-      await this.fetchRecipients();
-      
-      // Then fetch templates
-      const templatesResponse = await apiClient.get('/templates');
-      this.templates = templatesResponse.data.data || templatesResponse.data;
-
-      if (this.letter && Object.keys(this.letter).length > 0) {
-        // Instead of mutating prop directly
-        this.$emit('update:editMode', true);
-        const formattedRecipients = Array.isArray(this.letter.recipients) 
-          ? this.letter.recipients.map(r => {
-              if (typeof r === 'object') {
-                return {
-                  id: r.id || '',
-                  name: r.name || '',
-                  position: r.position || ''
-                };
-              } else {
-                return {
-                  id: r,
-                  name: '',
-                  position: ''
-                };
-              }
-            })
-          : [{
-              id: this.letter.recipients?.id || this.letter.recipients || '',
-              name: this.letter.recipients?.name || '',
-              position: this.letter.recipients?.position || ''
-            }];
+        await this.fetchCSRFToken();
+        await this.fetchRecipients();
+        await this.fetchTemplates();
         
-        // Build a new object for letterForm, do NOT spread this.letter
-        this.letterForm = {
-          title: this.letter.title || '',
-          type: this.letter.type || '',
-          subject: this.letter.subject || '',
-          content: this.letter.content || '',
-          sender_name: this.letter.sender_name || '',
-          sender_position: this.letter.sender_position || '',
-          date: this.formatDateForInput(this.letter.date),
-          recipients: formattedRecipients
-        };
-      }
-      this.fetchRecipients();
+        if (this.letter && Object.keys(this.letter).length > 0) {
+            // Instead of mutating prop directly
+            this.$emit('update:editMode', true);
+            const formattedRecipients = Array.isArray(this.letter.recipients) 
+              ? this.letter.recipients.map(r => {
+                  if (typeof r === 'object') {
+                    return {
+                      id: r.id || '',
+                      name: r.name || '',
+                      position: r.position || ''
+                    };
+                  } else {
+                    return {
+                      id: r,
+                      name: '',
+                      position: ''
+                    };
+                  }
+                })
+              : [{
+                  id: this.letter.recipients?.id || this.letter.recipients || '',
+                  name: this.letter.recipients?.name || '',
+                  position: this.letter.recipients?.position || ''
+                }];
+            
+            // Build a new object for letterForm, do NOT spread this.letter
+            this.letterForm = {
+              title: this.letter.title || '',
+              type: this.letter.type || '',
+              subject: this.letter.subject || '',
+              content: this.letter.content || '',
+              sender_name: this.letter.sender_name || '',
+              sender_position: this.letter.sender_position || '',
+              date: this.formatDateForInput(this.letter.date),
+              recipients: formattedRecipients
+            };
+          }
+          this.fetchRecipients();
     } catch (error) {
       console.error('Component initialization error:', error);
       this.closeModal();
@@ -847,14 +842,23 @@ export default {
                 sender_name: this.letterForm.sender_name,
                 sender_position: this.letterForm.sender_position,
                 date: this.letterForm.date,
-                recipients: this.letterForm.recipients.map(recipient => ({
-                    id: recipient.id,
-                    name: recipient.name,
-                    position: recipient.position
-                }))
+                // Send complete recipient objects instead of just IDs
+                recipients: this.letterForm.recipients
+                    .filter(r => r && r.id)
+                    .map(r => ({
+                        id: r.id,
+                        name: r.name,
+                        position: r.position
+                    }))
             };
     
-            await apiClient.post('/templates', payload);
+            const response = await apiClient.post('/templates', payload);
+            // Refresh templates list
+            await this.fetchTemplates();
+            
+            // Emit the template-saved event with the new template data
+            this.$emit('template-saved', response.data);
+            
             this.showTemplateModal = false;
             this.showSuccess = true;
             setTimeout(() => {
@@ -865,7 +869,7 @@ export default {
             if (error.response?.data?.errors) {
                 this.errors = error.response.data.errors;
             } else {
-                this.errors.submit = 'Failed to save template. Please try again.';
+                this.errors.submit = error.response?.data?.error || 'Failed to save template. Please try again.';
             }
         } finally {
             this.isSubmitting = false;
@@ -889,13 +893,257 @@ export default {
     },
     
     initQuill() {
-      if (Quill) {  // Add check to ensure Quill is defined
+      if (Quill) {
         const Font = Quill.import('formats/font')
         Font.whitelist = [
           'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 
           'garamond', 'tahoma', 'verdana', 'trebuchet', 'helvetica'
         ]
         Quill.register(Font, true)
+      }
+    },
+    // Add fetchTemplates method in the correct location
+    // Remove these lines from the bottom of the file
+    // Add fetchTemplates method
+    async fetchTemplates() {
+      try {
+        const response = await apiClient.get('/templates');
+        this.templates = response.data.data || response.data || [];
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+        this.templates = [];
+      }
+    },
+    
+    updateRecipient(index, recipientId) {
+      if (!recipientId) return;
+      
+      const selectedRecipient = this.recipientsList.find(r => 
+        r.id === (typeof recipientId === 'string' ? parseInt(recipientId) : recipientId)
+      );
+      
+      if (selectedRecipient) {
+        this.letterForm.recipients[index] = {
+          id: selectedRecipient.id,
+          name: selectedRecipient.name || '',
+          position: selectedRecipient.position || ''
+        };
+      }
+      this.clearError('recipients');
+    },  // Add comma here
+    handleBack() {
+      // Reset form and close modal
+      this.errors = {};
+      this.letterForm = {
+        title: '',
+        type: '',
+        subject: '',
+        date: new Date().toISOString().split('T')[0],
+        recipients: [{ id: '', name: '', position: '' }],
+        content: '',
+        sender_name: '',
+        sender_position: ''
+      };
+      this.closeModal();
+    },
+    // Update the validateForm method
+    validateForm() {
+      this.errors = {};
+      let isValid = true;
+    
+      // Validate type with specific values
+      // Update valid types to match backend expectations
+      const validTypes = ['Memo', 'Endorsement', 'Invitation Meeting', 'Letter to Admin'];
+      if (!this.letterForm.type || !validTypes.includes(this.letterForm.type)) {
+        this.errors.type = 'Please select a valid type';
+        isValid = false;
+      }
+
+      // Add validation for required fields
+      if (!this.letterForm.title) {
+        this.errors.title = 'Title is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.subject) {
+        this.errors.subject = 'Subject is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.content) {
+        this.errors.content = 'Content is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.sender_name) {
+        this.errors.sender_name = 'Sender name is required';
+        isValid = false;
+      }
+
+      if (!this.letterForm.sender_position) {
+        this.errors.sender_position = 'Sender position is required';
+        isValid = false;
+      }
+
+      // Validate recipients
+      if (!this.letterForm.recipients.some(r => r.id)) {
+        this.errors.recipients = 'At least one recipient is required';
+        isValid = false;
+      }
+    
+      return isValid;
+    },
+
+    // Add these methods
+    async handleSubmit() {
+      if (this.isSubmitting) return;
+      
+      if (!this.validateForm()) {
+        return;
+      }
+
+      this.showConfirmModal = true;
+    },
+
+    async confirmSubmit() {
+      try {
+        this.isSubmitting = true;
+        // Ensure recipients are sent as integer IDs
+        const payload = {
+          ...this.letterForm,
+          recipients: this.letterForm.recipients
+            .map(r => parseInt(r.id, 10))
+            .filter(id => !isNaN(id))
+        };
+        const endpoint = this.editMode ? `/letters/${this.letter.id}` : '/letters';
+        const method = this.editMode ? 'put' : 'post';
+        const response = await apiClient[method](endpoint, payload);
+        this.showConfirmModal = false;
+        this.showSuccess = true;
+        setTimeout(() => {
+          this.closeModal();
+        }, 1200); // Close after 1.2 seconds
+        if (this.editMode) {
+          this.$emit('update-letter', response.data);
+        } else {
+          this.$emit('save-letter', response.data);
+        }
+        this.$emit('refresh-letters');
+      } catch (error) {
+        console.error('Error saving letter:', error);
+        this.errors.submit = 'Failed to save letter. Please try again.';
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+
+    async handleQuickSave() {
+      if (this.isSubmitting) return;
+      
+      // Validate required fields before showing template modal
+      const requiredFields = ['title', 'type', 'subject', 'content', 'sender_name', 'sender_position', 'date'];
+      const errors = {};
+      
+      requiredFields.forEach(field => {
+        if (!this.letterForm[field]) {
+          errors[field] = `The ${field.replace('_', ' ')} field is required.`;
+        }
+      });
+    
+      if (Object.keys(errors).length > 0) {
+        this.errors = errors;
+        return;
+      }
+    
+      // Show template name input modal if validation passes
+      this.showTemplateModal = true;
+    },
+    
+    async confirmQuickSave() {
+        if (!this.templateName) {
+            this.errors.templateName = 'Template name is required';
+            return;
+        }
+    
+        try {
+            this.isSubmitting = true;
+            const payload = {
+                name: this.templateName,
+                title: this.letterForm.title || '',  // Ensure title is included
+                type: this.letterForm.type,
+                subject: this.letterForm.subject,
+                content: this.letterForm.content,
+                sender_name: this.letterForm.sender_name,
+                sender_position: this.letterForm.sender_position,
+                date: this.letterForm.date,
+                // Send complete recipient objects instead of just IDs
+                recipients: this.letterForm.recipients
+                    .filter(r => r && r.id)
+                    .map(r => ({
+                        id: r.id,
+                        name: r.name,
+                        position: r.position
+                    }))
+            };
+    
+            const response = await apiClient.post('/templates', payload);
+            // Refresh templates list
+            await this.fetchTemplates();
+            
+            // Emit the template-saved event with the new template data
+            this.$emit('template-saved', response.data);
+            
+            this.showTemplateModal = false;
+            this.showSuccess = true;
+            setTimeout(() => {
+                this.closeModal();
+            }, 1200);
+        } catch (error) {
+            console.error('Error saving template:', error);
+            if (error.response?.data?.errors) {
+                this.errors = error.response.data.errors;
+            } else {
+                this.errors.submit = error.response?.data?.error || 'Failed to save template. Please try again.';
+            }
+        } finally {
+            this.isSubmitting = false;
+        }
+    },
+    clearError(field) {
+      if (this.errors && this.errors[field]) {
+        this.errors[field] = null;
+        delete this.errors[field];
+      }
+    },
+    onContentInput() {
+      this.clearError('content');
+    },
+    showPdfPreviewButton(index) {
+      this.pdfPreviewIndex = index;
+    },
+
+    previewRecipientPdf(recipient) {
+      // Placeholder: Replace with your actual PDF preview logic
+    },
+    
+    initQuill() {
+      if (Quill) {
+        const Font = Quill.import('formats/font')
+        Font.whitelist = [
+          'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 
+          'garamond', 'tahoma', 'verdana', 'trebuchet', 'helvetica'
+        ]
+        Quill.register(Font, true)
+      }
+    },
+    // Add fetchTemplates method in the correct location
+    async fetchTemplates() {
+      try {
+        const response = await apiClient.get('/templates');
+        this.templates = response.data.data || response.data || [];
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+        this.templates = [];
       }
     }
   }, // End of methods
@@ -919,3 +1167,5 @@ export default {
   width: 100%;
 }
 </style>
+
+

@@ -50,17 +50,17 @@
                   </svg>
                   Update  <!-- Changed from "Save" -->
                 </button>
+                <!-- Change the button text -->
                 <button
                   type="button"
                   @click="handleQuickSave"
                   :disabled="isSubmitting"
                   class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 transition-all disabled:opacity-50"
                 >
-                  <!-- Changed icon to bookmark -->
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v14l7-7 7 7V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/>
                   </svg>
-                  {{ editMode ? 'Update Template' : 'Save as Template' }}
+                  Save as Template
                 </button>
               </div>
             </div>
@@ -333,13 +333,14 @@
       <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
           <div class="sm:flex sm:items-start">
+            <!-- Update the confirmation modal content -->
             <div class="mt-3 text-center sm:mt-0 sm:text-left">
               <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                Confirm Create
+                Confirm Update
               </h3>
               <div class="mt-2">
                 <p class="text-sm text-gray-500">
-                  Are you sure to create new letter?
+                  Are you sure you want to update this letter?
                 </p>
               </div>
             </div>
@@ -439,7 +440,8 @@ export default {
       default: false
     }
   },
-  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode'],
+  // In the emits array, add template-saved
+  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode', 'template-saved'],
   data() {
     const defaultForm = {
       title: '',
@@ -449,9 +451,7 @@ export default {
       recipients: [{ id: '', name: '', position: '' }],
       content: '',
       sender_name: '',
-      sender_position: '',
-      pdfPreviewIndex: null,
-      letterTypes: ['memo', 'endorsement', 'invitation meeting', 'letter to admin'],
+      sender_position: ''
     };
 
     return {
@@ -763,20 +763,44 @@ export default {
       return isValid;
     },
 
+    // Add these methods
+    async handleSubmit() {
+      if (this.isSubmitting) return;
+      
+      if (!this.validateForm()) {
+        return;
+      }
+
+      // For update operation, submit directly without confirmation
+      if (this.editMode) {
+        await this.confirmSubmit();
+      } else {
+        this.showConfirmModal = true;
+      }
+    },
+
     async confirmSubmit() {
       try {
         this.isSubmitting = true;
         
-        // Use letter object directly for the payload
+        // Map the type values to match backend expectations
+        const typeMapping = {
+          'memo': 'Memo',
+          'endorsement': 'Endorsement',
+          'invitation meeting': 'Invitation Meeting',
+          'letter to admin': 'Letter to Admin'
+        };
+
         const payload = {
           title: this.letter.title,
-          type: this.letter.type,
+          type: typeMapping[this.letter.type] || this.letter.type,  // Use mapped value or original
           subject: this.letter.subject,
           content: this.letter.content,
           date: this.letter.date,
           sender_name: this.letter.sender_name,
           sender_position: this.letter.sender_position,
           recipients: this.letter.recipients
+            .filter(r => r && r.id)
             .map(r => parseInt(r.id, 10))
             .filter(id => !isNaN(id))
         };
@@ -789,17 +813,17 @@ export default {
         
         setTimeout(() => {
           this.closeModal();
+          this.$emit('refresh-letters');
         }, 1200);
 
         this.$emit('update-letter', response.data);
-        this.$emit('refresh-letters');
       } catch (error) {
         console.error('Error updating letter:', error);
         this.errors.submit = 'Failed to update letter. Please try again.';
       } finally {
         this.isSubmitting = false;
       }
-    }, // Added comma here
+    },
 
     async handleQuickSave() {
       if (this.isSubmitting) return;
@@ -900,7 +924,7 @@ export default {
     },
     
     initQuill() {
-      if (Quill) {  // Add check to ensure Quill is defined
+      if (Quill) {
         const Font = Quill.import('formats/font')
         Font.whitelist = [
           'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 
@@ -908,16 +932,38 @@ export default {
         ]
         Quill.register(Font, true)
       }
+    },
+
+    // Add template handling methods
+    async handleTemplateSaved(templateData) {
+        await this.fetchTemplates();
+    },
+
+    async fetchTemplates() {
+        try {
+            const response = await apiClient.get('/templates');
+            this.templates = response.data.data || response.data;
+        } catch (error) {
+            console.error('Error fetching templates:', error);
+        }
     }
   }, // End of methods
 
   watch: {
     selectedTemplate(newVal) {
-      if (newVal) {
-        this.handleTemplateChange(newVal);
-      }
+        if (newVal) {
+            this.handleTemplateChange(newVal);
+        }
+    },
+    templates: {
+        handler(newTemplates) {
+            if (newTemplates && newTemplates.length > 0) {
+                // No need to fetch templates here since we already have them
+            }
+        },
+        immediate: true
     }
-  },
+},
 
   mounted() {
     this.initQuill();
@@ -930,3 +976,4 @@ export default {
   width: 100%;
 }
 </style>
+
