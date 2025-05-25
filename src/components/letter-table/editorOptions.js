@@ -11,7 +11,14 @@ export const editorOptions = {
       [{ 'size': ['small', false, 'large', 'huge'] }],
       [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
       [{ 'color': [] }, { 'background': [] }],
-      [{ 'font': [] }],
+      [{ 'font': [
+        '',                 // Default sans-serif
+        'times-new-roman',  // Serif
+        'georgia',          // Serif
+        'arial',            // Sans-serif
+        'helvetica',        // Sans-serif
+        'verdana'           // Sans-serif
+      ] }],
       [{ 'align': [] }],
       ['clean']
     ]

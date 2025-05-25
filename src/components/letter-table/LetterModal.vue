@@ -94,13 +94,13 @@
                       </div>
                     </div>
                                  
+                    <!-- Replace the existing template selection part -->
                     <div class="flex items-center gap-4 ml-8">
                       <label class="font-medium w-24 text-lg">Template:</label>
                       <div class="relative">
                         <select
                           v-model="selectedTemplate"
                           class="w-[200px] border rounded-md px-4 py-2 text-base bg-white appearance-none pr-10"
-                          @change="handleTemplateChange"
                           :disabled="isTemplateLoading"
                         >
                           <option value="">Select Template</option>
@@ -112,6 +112,7 @@
                             {{ template.name }}
                           </option>
                         </select>
+                        <!-- Loading overlay -->
                         <div 
                           v-if="isTemplateLoading" 
                           class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
@@ -123,6 +124,12 @@
                             </svg>
                             <span class="mt-4 text-gray-700">Loading Template...</span>
                           </div>
+                        </div>
+                        <!-- Dropdown arrow -->
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                       </div>
                     </div>
@@ -381,8 +388,54 @@
 </template>
 
 <style>
-.prose {
-  width: 100%;
+/* Default font (empty string) */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value=""]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value=""]::before {
+  content: 'Sans Serif';
+  font-family: Arial, sans-serif;
+}
+
+/* Font picker labels */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
+  content: 'Arial';
+  font-family: Arial, sans-serif;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
+  content: 'Times New Roman';
+  font-family: 'Times New Roman', serif;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
+  content: 'Georgia';
+  font-family: Georgia, serif;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
+  content: 'Verdana';
+  font-family: Verdana, sans-serif;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="helvetica"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="helvetica"]::before {
+  content: 'Helvetica';
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+/* Font class mappings */
+.ql-font-arial { font-family: Arial, sans-serif !important; }
+.ql-font-times-new-roman { font-family: 'Times New Roman', serif !important; }
+.ql-font-georgia { font-family: Georgia, serif !important; }
+.ql-font-verdana { font-family: Verdana, sans-serif !important; }
+.ql-font-helvetica { font-family: Helvetica, Arial, sans-serif !important; }
+
+/* Default editor font */
+.ql-editor {
+  font-family: Arial, sans-serif;
 }
 </style>
 
@@ -419,25 +472,30 @@ export default {
   emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode', 'template-saved'],
 
   setup(props, { emit }) {
-    const letterModal = useLetterModal(props, emit)
+    const letterModal = useLetterModal(props, emit);
     
-    watch(() => letterModal.selectedTemplate.value, (newVal) => {
+    watch(() => letterModal.selectedTemplate.value, async (newVal) => {
       if (newVal) {
-        letterModal.handleTemplateChange(newVal)
+        await letterModal.handleTemplateChange(newVal);
       }
-    })
+    });
 
     onMounted(() => {
-      letterModal.initQuill()
-      letterModal.fetchRecipients()
-      letterModal.fetchTemplates()
-    })
+      letterModal.initQuill();
+      letterModal.fetchRecipients();
+      letterModal.fetchTemplates();
+    });
 
     return {
-      ...letterModal
+      ...letterModal,
+      letterForm: letterModal.letterForm,
+      selectedTemplate: letterModal.selectedTemplate,
+      isTemplateLoading: letterModal.isTemplateLoading,
+      templates: letterModal.templates,
+      handleTemplateChange: letterModal.handleTemplateChange,
     }
   }
-}
+};
 </script>
 
 

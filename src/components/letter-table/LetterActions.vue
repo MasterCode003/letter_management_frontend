@@ -102,19 +102,27 @@
       </div>
     </div>
 
+    <!-- Replace the existing loading modals -->
+    
     <!-- Loading modal for Word export -->
     <div v-if="isConverting" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg flex items-center gap-3">
-        <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
-        <span>Exporting to Word...</span>
+      <div class="bg-white p-8 rounded-lg shadow-lg flex flex-col items-center">
+        <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="mt-4 text-gray-700">Exporting to Word...</span>
       </div>
     </div>
-
+    
     <!-- Loading modal for PDF preview -->
     <div v-if="isLoadingPDF" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg flex items-center gap-3">
-        <component is="ArrowPathIcon" class="w-5 h-5 animate-spin" />
-        <span>Generating PDF preview...</span>
+      <div class="bg-white p-8 rounded-lg shadow-lg flex flex-col items-center">
+        <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="mt-4 text-gray-700">Generating PDF preview...</span>
       </div>
     </div>
   </div>
@@ -187,19 +195,19 @@ export default {
 
     async handlePreviewPDF() {
       try {
-        this.isLoadingPDF = true; // Set loading state
+        this.isLoadingPDF = true;
         if (!this.letter?.id) {
           throw new Error('No letter selected');
         }
 
         const normalizedType = this.letter.type?.trim().toLowerCase();
         const endpointMap = {
-          'memo': `/memos/${this.letter.id}/preview-pdf`,
-          'endorsement': `/endorsements/${this.letter.id}/preview-pdf`,
-          'letter to admin': `/letters-to-admin/${this.letter.id}/preview-pdf`,
-          'invitation meeting': `/invitation-meetings/${this.letter.id}/preview-pdf`,
-          'letter_to_admin': `/letters-to-admin/${this.letter.id}/preview-pdf`,
-          'invitation_meeting': `/invitation-meetings/${this.letter.id}/preview-pdf`
+          'memo': `/letters/preview/memo/${this.letter.id}`,
+          'endorsement': `/letters/preview/endorsement/${this.letter.id}`,
+          'letter to admin': `/letters/preview/letter-to-admin/${this.letter.id}`,
+          'invitation meeting': `/letters/preview/invitation-meeting/${this.letter.id}`,
+          'letter_to_admin': `/letters/preview/letter-to-admin/${this.letter.id}`,
+          'invitation_meeting': `/letters/preview/invitation-meeting/${this.letter.id}`
         };
 
         const endpoint = endpointMap[normalizedType];
