@@ -7,6 +7,7 @@ import 'quill/dist/quill.snow.css'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import apiClient from './utils/apiClient'
+import '@/assets/styles/quill-font.css'
 
 const app = createApp(App)
 

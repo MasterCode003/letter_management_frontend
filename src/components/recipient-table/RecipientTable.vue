@@ -150,9 +150,10 @@ import { ref, onMounted, computed } from 'vue'
 import RecipientActions from './RecipientActions.vue'
 import RecipientForm from './RecipientForm.vue'
 import SuccessMessageModal from '../letter-table/modals/SuccessMessageModal.vue'
-import ConfirmationModal from '../letter-table/modals/ConfirmationModal.vue' // Keep import if used elsewhere, otherwise remove
+import ConfirmationModal from '../letter-table/modals/ConfirmationModal.vue'
+import ValidationWarning from '@/components/common/ValidationWarning.vue'  // Add this import
 import apiClient from '@/utils/apiClient'
-import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/solid' // Import PlusIcon and Arrow Icons
+import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/solid'
 
 const showAddModal = ref(false)
 const selectedRecipient = ref(null)

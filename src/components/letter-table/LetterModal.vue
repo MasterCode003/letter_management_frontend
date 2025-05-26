@@ -389,8 +389,9 @@
 
 <script>
 import { onMounted, watch } from 'vue'
-import { QuillEditor } from '@vueup/vue-quill'
+import { Quill, QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
+import '@/assets/styles/quill-font.css' // Add this import
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import ValidationWarning from '@/components/common/ValidationWarning.vue'
 import useLetterModal from './composables/useLetterModal'
@@ -421,16 +422,52 @@ export default {
   setup(props, { emit }) {
     const letterModal = useLetterModal(props, emit)
     
+    // In the onMounted hook
+    onMounted(() => {
+      if (Quill) {
+        const Font = Quill.import('formats/font')
+        Font.whitelist = [
+          'Times New Roman',
+          'Georgia',
+          'Arial',
+          'Helvetica',
+          'Verdana'
+        ];
+        Quill.register(Font, true);
+      }
+      
+      letterModal.initQuill()
+      letterModal.fetchRecipients()
+      letterModal.fetchTemplates()
+    })
+
+    // Update editor options
+    letterModal.editorOptions = {
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'header': 1 }, { 'header': 2 }],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'script': 'sub'}, { 'script': 'super' }],
+          [{ 'indent': '-1'}, { 'indent': '+1' }],
+          [{ 'direction': 'rtl' }],
+          [{ 'size': ['small', false, 'large', 'huge'] }],
+          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+          [{ 'color': [] }, { 'background': [] }],
+          // Removed font family selection
+          [{ 'align': [] }],
+          ['clean']
+        ]
+      },
+      placeholder: 'Compose your letter...',
+      theme: 'snow'
+    }
+
     watch(() => letterModal.selectedTemplate.value, (newVal) => {
       if (newVal) {
         letterModal.handleTemplateChange(newVal)
       }
-    })
-
-    onMounted(() => {
-      letterModal.initQuill()
-      letterModal.fetchRecipients()
-      letterModal.fetchTemplates()
     })
 
     return {

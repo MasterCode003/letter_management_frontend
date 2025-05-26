@@ -1,4 +1,3 @@
-
 <template>
   <transition name="fade">
     <div v-if="modelValue" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -10,8 +9,6 @@
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-bold text-white">Edit Letter</h2>  <!-- Changed from "New Letter" -->
               
-              <!-- Title input centered with white background -->
-              <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
                   <input
@@ -26,7 +23,7 @@
                   <ValidationWarning v-if="errors.title" :message="errors.title" />
                 </div>
               </div>
-              
+             
               <!-- Action buttons with updated styling -->
               <div class="flex items-center gap-4">
                 <button
@@ -411,9 +408,11 @@
 </template>
 
 <script>
-// Remove duplicate imports and organize them
+import { onMounted, watch } from 'vue'
 import { Quill, QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
+// Remove this import
+// import '@/assets/styles/quill-font.css'
 import apiClient from '@/utils/apiClient'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import ValidationWarning from '@/components/common/ValidationWarning.vue'
@@ -458,6 +457,7 @@ export default {
     const localLetter = { ...defaultForm, ...this.letter };
   
     return {
+      // In the data() function where editor options are defined
       editorOptions: {
         modules: {
           toolbar: [
@@ -471,7 +471,14 @@ export default {
             [{ 'size': ['small', false, 'large', 'huge'] }],
             [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
             [{ 'color': [] }, { 'background': [] }],
-            [{ 'font': [] }],
+            [{ 'font': [
+              'Arial',
+              'Times New Roman',
+              'Georgia',
+              'Helvetica',
+              'Verdana',
+              'Courier New'
+            ] }],
             [{ 'align': [] }],
             ['clean']
           ]
@@ -839,7 +846,6 @@ export default {
         successTimeout: null,
       }
     },
-
     // Add cleanup in beforeUnmount
     beforeUnmount() {
       if (this.successTimeout) {
@@ -935,59 +941,23 @@ export default {
     previewRecipientPdf(recipient) {
       // Reset preview index after showing preview
       this.pdfPreviewIndex = null;
-      // Implement your PDF preview logic here
     },
-    
-    initQuill() {
-      if (Quill) {
-        const Font = Quill.import('formats/font')
-        Font.whitelist = [
-          'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 
-          'garamond', 'tahoma', 'verdana', 'trebuchet', 'helvetica'
-        ]
-        Quill.register(Font, true)
-      }
-    },
-
-    // Add template handling methods
-    async handleTemplateSaved(templateData) {
-        await this.fetchTemplates();
-    },
-
-    async fetchTemplates() {
-        try {
-            const response = await apiClient.get('/templates');
-            this.templates = response.data.data || response.data;
-        } catch (error) {
-            console.error('Error fetching templates:', error);
-        }
-    },
-
-    async handleLetterUpdated(letterData) {
-        try {
-            this.isFetching = true;
-            const response = await apiClient.put(`/letters/${letterData.id}`, letterData);
-            
-            if (response.data) {
-                await this.$emit('refresh-letters');
-                this.$emit('update:modelValue', false);
-                this.$emit('show-success', 'Letter updated successfully');
-            }
-        } catch (error) {
-            console.error('Error updating letter:', error);
-            alert(error.response?.data?.message || 'Failed to update letter');
-        } finally {
-            this.isFetching = false;
-        }
-    },
-
     showSuccess(message) {
       this.$emit('show-success', message);
     }
-},
-
-  mounted() {
-    this.initQuill();
+  }, // End of methods
+  // In your mounted or created hook
+  if (Quill) {
+    const Font = Quill.import('formats/font')
+    Font.whitelist = [
+      'Arial',
+      'Times New Roman',
+      'Georgia',
+      'Helvetica',
+      'Verdana',
+      'Courier New'
+    ];
+    Quill.register(Font, true);
   }
 } // End of component export default
 </script>
@@ -997,4 +967,3 @@ export default {
   width: 100%;
 }
 </style>
-
