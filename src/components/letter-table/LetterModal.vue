@@ -1,99 +1,3 @@
-<script>
-import { ref, onMounted } from 'vue'
-import { QuillEditor } from '@vueup/vue-quill'
-import useLetterModal from './composables/useLetterModal'
-
-export default {
-  name: 'LetterModal',
-  components: {
-    QuillEditor,
-  },
-  props: {
-    modelValue: {
-      type: Boolean,
-      required: true,
-      default: false
-    },
-    letter: {
-      type: Object,
-      default: null
-    },
-    editMode: {
-      type: Boolean,
-      default: false
-    }
-  },
-  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'template-saved'],
-  setup(props, { emit }) {
-    const {
-      // Add these to the destructured properties
-      handleTemplateSaved,
-      showSuccess,
-      letterForm,
-      errors,
-      showConfirmModal,
-      showTemplateModal,
-      recipientsList,
-      templateName,
-      isSubmitting,
-      templates,
-      selectedTemplate,
-      isTemplateLoading,
-      editorOptions,
-      clearError,
-      handleBack,
-      handleSubmit,
-      confirmSubmit,  // Now properly exposed
-      handleQuickSave,
-      confirmQuickSave,
-      updateRecipient,
-      addRecipient,
-      removeRecipient,
-      handleTemplateChange,
-      fetchRecipients,
-      fetchTemplates,
-      handleSaveLetter,    // Add this
-      handleUpdateLetter   // Add this
-    } = useLetterModal(props, emit)
-
-    // Fetch data when component mounts
-    onMounted(async () => {
-      await fetchRecipients()
-      await fetchTemplates()
-    })
-
-    return {
-      // Expose these in the return statement
-      handleTemplateSaved,
-      showSuccess,
-      letterForm,
-      errors,
-      showConfirmModal,
-      showTemplateModal,
-      showSuccess,
-      recipientsList,
-      templateName,
-      isSubmitting,
-      templates,
-      selectedTemplate,
-      isTemplateLoading,
-      editorOptions,
-      clearError,
-      handleBack,
-      handleSubmit,
-      handleQuickSave,
-      confirmQuickSave,
-      updateRecipient,
-      addRecipient,
-      removeRecipient,
-      handleTemplateChange,
-      handleSaveLetter,    // Add this
-      handleUpdateLetter   // Add this
-    }
-  }
-}
-</script>
-
 <template>
   <transition name="fade">
     <div v-if="modelValue" class="fixed inset-0 z-50 overflow-hidden">
@@ -353,5 +257,65 @@ export default {
     </div>
   </transition>
 </template>
+
+<style>
+.prose {
+  width: 100%;
+}
+</style>
+
+
+<script>
+import { onMounted, watch } from 'vue'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
+import SuccessMessageModal from './modals/SuccessMessageModal.vue'
+import ValidationWarning from '@/components/common/ValidationWarning.vue'
+import useLetterModal from './composables/useLetterModal'
+
+export default {
+  name: 'LetterEditModal',
+  components: {
+    QuillEditor,
+    SuccessMessageModal,
+    ValidationWarning
+  },
+  props: {
+    modelValue: {
+      type: Boolean,
+      required: true
+    },
+    letter: {
+      type: Object,
+      default: () => ({})
+    },
+    editMode: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['update:modelValue', 'close', 'save-letter', 'update-letter', 'refresh-letters', 'update:editMode', 'template-saved'],
+
+  setup(props, { emit }) {
+    const letterModal = useLetterModal(props, emit)
+    
+    watch(() => letterModal.selectedTemplate.value, (newVal) => {
+      if (newVal) {
+        letterModal.handleTemplateChange(newVal)
+      }
+    })
+
+    onMounted(() => {
+      letterModal.initQuill()
+      letterModal.fetchRecipients()
+      letterModal.fetchTemplates()
+    })
+
+    return {
+      ...letterModal
+    }
+  }
+}
+</script>
 
 
