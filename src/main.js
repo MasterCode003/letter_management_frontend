@@ -1,23 +1,14 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import { createRouter, createWebHistory } from 'vue-router'
-import mavonEditor from 'mavon-editor'
-import 'mavon-editor/dist/css/index.css'
-
-// Define your routes
-const routes = [
-  // Add your routes here
-  // Example:
-  // { path: '/', component: Home },
-]
-
-// Create router instance
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+import router from './router'
+import './index.css'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
+import apiClient from './utils/apiClient'
 
 const app = createApp(App)
 app.use(router)
-app.use(mavonEditor)
+app.component('QuillEditor', QuillEditor)  // Register QuillEditor as a global component
 app.mount('#app')

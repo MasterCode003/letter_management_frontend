@@ -1,3 +1,4 @@
+
 <template>
   <transition name="fade">
     <div v-if="modelValue" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -9,6 +10,8 @@
             <div class="flex items-center justify-between">
               <h2 class="text-2xl font-bold text-white">Edit Letter</h2>  <!-- Changed from "New Letter" -->
               
+              <!-- Title input centered with white background -->
+              <!-- Change this in the title input -->
               <div class="flex-1 flex justify-center mx-6">
                 <div class="flex flex-col w-[350px] bg-white rounded-lg shadow-sm">
                   <input
@@ -23,7 +26,7 @@
                   <ValidationWarning v-if="errors.title" :message="errors.title" />
                 </div>
               </div>
-             
+              
               <!-- Action buttons with updated styling -->
               <div class="flex items-center gap-4">
                 <button
@@ -175,19 +178,6 @@
                         </button>
                       </div>
                       
-                      <!-- Remove this duplicate select element -->
-                      <!-- <select
-                        v-model="recipient.id"
-                        @change="updateRecipient(index, $event.target.value)"
-                        class="w-[500px] border rounded-md px-4 py-2 appearance-none bg-white pr-10"
-                        :class="{ 'border-red-500': errors.recipients }"
-                      >
-                        <option value="">Select Recipient</option>
-                        <option v-for="r in recipientsList" :key="r.id" :value="r.id">
-                          {{ r.name }} - {{ r.position }}
-                        </option>
-                      </select> -->
-
                       <div v-if="recipient.name && recipient.position" class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                         <span
                           class="cursor-pointer text-blue-600 underline"
@@ -417,7 +407,9 @@
 </template>
 
 <script>
-import { onMounted, watch } from 'vue'
+// Remove duplicate imports and organize them
+import { Quill, QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import apiClient from '@/utils/apiClient'
 import SuccessMessageModal from './modals/SuccessMessageModal.vue'
 import ValidationWarning from '@/components/common/ValidationWarning.vue'
@@ -464,7 +456,6 @@ export default {
     const localLetter = { ...defaultForm, ...this.letter };
   
     return {
-      // In the data() function where editor options are defined
       editorOptions: {
         modules: {
           toolbar: [
@@ -478,14 +469,7 @@ export default {
             [{ 'size': ['small', false, 'large', 'huge'] }],
             [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
             [{ 'color': [] }, { 'background': [] }],
-            [{ 'font': [
-              'Arial',
-              'Times New Roman',
-              'Georgia',
-              'Helvetica',
-              'Verdana',
-              'Courier New'
-            ] }],
+            [{ 'font': [] }],
             [{ 'align': [] }],
             ['clean']
           ]
@@ -853,6 +837,7 @@ export default {
         successTimeout: null,
       }
     },
+
     // Add cleanup in beforeUnmount
     beforeUnmount() {
       if (this.successTimeout) {
@@ -948,26 +933,60 @@ export default {
     previewRecipientPdf(recipient) {
       // Reset preview index after showing preview
       this.pdfPreviewIndex = null;
+      // Implement your PDF preview logic here
     },
+    
+    initQuill() {
+      if (Quill) {
+        const Font = Quill.import('formats/font')
+        Font.whitelist = [
+          'arial', 'calibri', 'cambria', 'times-new-roman', 'courier', 'georgia', 
+          'garamond', 'tahoma', 'verdana', 'trebuchet', 'helvetica'
+        ]
+        Quill.register(Font, true)
+      }
+    },
+
+    // Add template handling methods
+    async handleTemplateSaved(templateData) {
+        await this.fetchTemplates();
+    },
+
+    async fetchTemplates() {
+        try {
+            const response = await apiClient.get('/templates');
+            this.templates = response.data.data || response.data;
+        } catch (error) {
+            console.error('Error fetching templates:', error);
+        }
+    },
+
+    async handleLetterUpdated(letterData) {
+        try {
+            this.isFetching = true;
+            const response = await apiClient.put(`/letters/${letterData.id}`, letterData);
+            
+            if (response.data) {
+                await this.$emit('refresh-letters');
+                this.$emit('update:modelValue', false);
+                this.$emit('show-success', 'Letter updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating letter:', error);
+            alert(error.response?.data?.message || 'Failed to update letter');
+        } finally {
+            this.isFetching = false;
+        }
+    },
+
     showSuccess(message) {
       this.$emit('show-success', message);
     }
-  }, // End of methods
-  // Remove the mounted hook since we don't need Quill configuration
-  // mounted() {
-  //   if (Quill) {
-  //     const Font = Quill.import('formats/font')
-  //     Font.whitelist = [
-  //       'Arial',
-  //       'Times New Roman',
-  //       'Georgia',
-  //       'Helvetica',
-  //       'Verdana',
-  //       'Courier New'
-  //     ];
-  //     Quill.register(Font, true);
-  //   }
-  // }
+},
+
+  mounted() {
+    this.initQuill();
+  }
 } // End of component export default
 </script>
 
@@ -975,22 +994,5 @@ export default {
 .prose {
   width: 100%;
 }
-/* Mavon Editor Styles */
-.v-note-wrapper {
-    z-index: 1 !important;
-}
-
-.v-note-panel {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 0.375rem !important;
-}
-
-.v-note-op {
-    border-bottom: 1px solid #e2e8f0 !important;
-    background-color: #f6f8fa !important;
-}
-
-.markdown-body {
-    background-color: white !important;
-}
 </style>
+
